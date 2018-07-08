@@ -1,16 +1,17 @@
 #pragma language glsl3
 
 #ifdef VERTEX
- //projection * vec4(x, y, z, 1) = vec4(x, y-z, y, 1)
-const mat4 projection = mat4(
-    1,  0, 0, 0,
-    0,  1, -1, 0,
-    0,  1, 0, 0,
-    0,  0, 0, 1
-);
 
 vec4 position(mat4 ortho, vec4 vertex) {
-    return projection * ortho * vertex;
+    //projection * vec4(x, y, z, 1) = vec4(x, y-z, y, 1)
+
+    mat4 projection = mat4(
+        1,  0,  0, 0,
+        0,  1, 1/love_ScreenSize.y, 0,
+        0,  -1,  0, 0,
+        0,  0,  0, 1
+    );
+    return ClipSpaceFromView * projection * TransformMatrix * vertex;
 }
 #endif
 

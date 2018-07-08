@@ -11,7 +11,7 @@ local sqrt, atan2 = math.sqrt, math.atan2
 local cos,  sin   = math.cos,  math.sin
 
 
-local voxelCount  = 800
+local voxelCount  = 100
 local vertexCount = voxelCount * 6 * 16
 
 FFI.cdef[[
@@ -42,12 +42,12 @@ local rectAngle = atan2(halfHeight, halfWidth)
 
 local function writeVertex(id, x, y, z, u, v)
    local vt = voxelData[id]
-   vt.x, vt.y, vt.z = x, y, z / 32
+   vt.x, vt.y, vt.z = x, y, z
    vt.u, vt.v       = u, v
 end
 
 function updateVoxel(id, x, y, z, rotation)
-   local offset = id * 96
+   local offset = id * 16 * 6
 
    local rot, iRot = rectAngle + rotation, -rectAngle + rotation
 
@@ -92,15 +92,15 @@ local player = {
    speed    = 50,
 
    rotVelocity = 0,
-   rotSpeed    = 2,
+   rotSpeed    = 4,
 }
 
 function love.load()
    for x = 0, 1280, 128 do
-      for y = 0, 720, 60 do
+      for y = 0, 720, 120 do
          local voxel = {
             x = x, y = y, z = 0,
-            r = 0.2
+            r = 1.2
          }
       
          updateVoxel(#voxels, voxel.x, voxel.y, voxel.z, voxel.r)
@@ -148,18 +148,11 @@ end
 function love.draw()
    
    love.graphics.setCanvas(canvas)
+      --love.graphics.scale(2)
       love.graphics.clear(0, 0, 0, 1, true, 1)
-
-      love.graphics.push()
-      love.graphics.translate(_WIDTH/2, _HEIGHT/2)
-      love.graphics.rotate(r)
-
-      
       love.graphics.setShader(Shader)
          love.graphics.draw(Voxel_mesh)
       love.graphics.setShader()
-
-      love.graphics.pop()
    love.graphics.setCanvas()
 
    love.graphics.draw(canvas[1])
