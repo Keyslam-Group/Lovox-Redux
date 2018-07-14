@@ -5,6 +5,27 @@ local Lovox = {
    depthBuffer = require(PATH..".depthBuffer"),
 }
 
+function Lovox.isSupported()
+   if not love.graphics.getTextureTypes().array then
+      return false, "Array images are not supported on this device"
+   end
+
+   if not love.graphics.getSupported().glsl3 then
+      return false, "GLSL 3 shaders are not supported on this device"
+   end
+
+   if not love.graphics.getSupported().instancing then
+      return false, "Mesh instancing is not supported on this device"
+   end
+
+   -- Should be supported if GLSL3 is supported
+   if not love.graphics.getSupported().multicanvasformates then
+      return false, "Multiple canvases are not supported on this device"
+   end
+
+   return true
+end
+
 function Lovox.newModel()
 
 end

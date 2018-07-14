@@ -18,7 +18,14 @@ function DepthBuffer:resize(w, h)
    w, h = w or love.graphics.getWidth(), h or love.graphics.getHeight()
 
    self.shader = love.graphics.newShader(PATH.."/shader.glsl")
+   self.projection = {
+      1, 0, 0, 0,
+      0, 1, -1, 0,
+      0, 1/h, 0, 0,
+      0, 0, 0, 1,
+   }
 
+   self.shader:send("projection", self.projection)
    self.color = love.graphics.newCanvas(w, h, {format = "rgba8"})
    self.depth = love.graphics.newCanvas(w, h, {format = "depth24"})
 
@@ -48,8 +55,8 @@ function DepthBuffer.detach()
    DepthBuffer.activeBuffer = nil
 end
 
-function DepthBuffer:draw(...)
-   love.graphics.draw(self.canvas[1], ...)
+function DepthBuffer:draw(x, y, scale)
+   love.graphics.draw(self.canvas[1], x, y, nil, scale, scale)
 end
 
 return setmetatable(DepthBuffer, {
