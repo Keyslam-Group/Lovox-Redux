@@ -5,6 +5,8 @@ local Lovox = {
    depthBuffer = require(PATH..".depthBuffer"),
 }
 
+--- Checks if Lovox is supported on the system.
+-- @returns boolean true if Lovox is supported. False otherwise.
 function Lovox.isSupported()
    if not love.graphics.getTextureTypes().array then
       return false, "Array images are not supported on this device"
@@ -26,10 +28,13 @@ function Lovox.isSupported()
    return true
 end
 
-function Lovox.newModel()
-
-end
-
+--- Draws a voxel to the screen immediately.
+-- @param texture The source texture to render.
+-- @param width, height, layer The dimensions of the source texture.
+-- @param x, y, z The position to render the voxel at.
+-- @param rotation The rotation factor of the voxel.
+-- @param sx, sy The scale factor of the voxel.
+-- @param r, g, b The color factor of the voxel.
 function Lovox.draw(texture, width, height, layers, x, y, z, rotation, sx, sy, r, g, b)
    local voxelData = Lovox.voxelData(texture, width, height, layers, 1, "static")
    voxelData:updateVoxel(1, x, y, z, rotation, sx, sy, r, g, b)
