@@ -22,9 +22,12 @@ vec4 position(mat4 ortho, vec4 vertex) {
 
 // Samples from an Array image. Discards alpha values.
 vec4 effect(vec4 color, sampler2D img, vec2 texture_coords, vec2 screen_coords) {
-   vec4 pixel = Texel(img, texture_coords);
+    vec4 pixel = Texel(img, texture_coords);
 
-   return pixel * color;
+    if (pixel.a < 1.0f) 
+        discard;
+
+    return pixel * color;
 }
 
 #endif
