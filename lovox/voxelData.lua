@@ -7,14 +7,6 @@ local Mat4 = require(PATH..".mat4")
 local cos = math.cos
 local sin = math.sin
 
--- Define a struct for our custom vertex format
-Ffi.cdef[[
-   typedef struct {
-      float mat[16];
-      unsigned char r, g, b, a;
-   } fm_instance;
-]]
-
 -- Define the module, as well as the vertex format
 local VoxelData = {
    vertexFormat = {
@@ -22,7 +14,6 @@ local VoxelData = {
       {"VertexTexCoord", "float", 2},
    },
 
-   instanceSize   = Ffi.sizeof("fm_instance"),
    instanceFormat = {
       {"MatRow1", "float", 4},
       {"MatRow2", "float", 4},
@@ -35,17 +26,16 @@ local VoxelData = {
 VoxelData.__index = VoxelData
 
 local function newModelAttributes(voxelCount)
-   local memoryUsage = voxelCount * VoxelData.instanceSize
+   local memoryUsage = voxelCount * Mat4.instanceSize
 
    local instanceData    = love.data.newByteData(memoryUsage)
-   local vertexBuffer    = Ffi.cast("fm_instance*", instanceData:getPointer())
+   local vertexBuffer    = Mat4.castInstances(instanceData:getPointer())
    local modelAttributes = love.graphics.newMesh(VoxelData.instanceFormat, instanceData, usage)
 
    for i = 0, voxelCount - 1 do
       local inst = vertexBuffer[i]
 
-      Mat4.setIdentity(inst)
-      Mat4.setRotation(inst, 0.5)
+      inst:setRotation(0.5)
 
       inst.r, inst.g, inst.b, inst.a = 255, 255, 255, 255
    end
