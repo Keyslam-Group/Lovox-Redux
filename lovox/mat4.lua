@@ -31,10 +31,10 @@ function Mat4.setTranslation(a, x, y, z)
    e[14] = z or 0
 end
 
-function Mat4.setRotation(a, rad)
+function Mat4.setRotation(a, angle)
    Mat4.setIdentity(a)
 
-   local c, s = math.cos(rad), math.sin(rad)
+   local c, s = math.cos(angle), math.sin(angle)
 
    local e = a.mat
 
@@ -42,6 +42,34 @@ function Mat4.setRotation(a, rad)
    e[4] = -s
    e[1] =  s
    e[5] =  c
+end
+
+function Mat4.setScale(a, sx, sy, sz)
+   Mat4.setIdentity(a)
+
+   local e = a.mat
+
+   e[0]  = sx or 1
+   e[5]  = sy or 1
+   e[10] = sz or 1
+end
+
+local temp_translate = Mat4.new()
+function Mat4.translate(a, x, y, z)
+   Mat4.setTranslation(temp_translate, x, y, z)
+   return Mat4.mul(a, temp_translate, a)
+end
+
+local temp_rotate = Mat4.new()
+function Mat4.rotate(a, angle)
+   Mat4.setRotation(temp_rotate, angle)
+   return Mat4.mul(a, temp_rotate, a)
+end
+
+local temp_scale = Mat4.new()
+function Mat4.scale(a, sx, sy, sz)
+   Mat4.setScale(temp_scale, sx, sy, sz)
+   return Mat4.mul(a, temp_scale, a)
 end
 
 local temp = Mat4.new().mat

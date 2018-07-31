@@ -11,7 +11,6 @@ local myDepthBuffer = Lovox.depthBuffer()
 function love.update(dt)
    for i = 0, myVoxelData.voxelCount - 1 do
       local inst = myVoxelData.vertexBuffer[i]
-      Lovox.mat4.setRotation(inst, love.timer.getTime())
    end
 
    myVoxelData.modelAttributes:setVertices(myVoxelData.instanceData)
