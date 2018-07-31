@@ -34,9 +34,7 @@ local function newModelAttributes(voxelCount)
 
    for i = 0, voxelCount - 1 do
       local inst = vertexBuffer[i]
-
-      inst:setRotation(0.5)
-
+      inst:setIdentity()
       inst.r, inst.g, inst.b, inst.a = 255, 255, 255, 255
    end
 
