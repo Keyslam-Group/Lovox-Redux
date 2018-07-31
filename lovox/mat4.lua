@@ -1,6 +1,6 @@
 local Ffi = require("ffi")
 
-local Mat4 = {}
+local Mat4   = {}
 Mat4.__index = Mat4
 
 -- Define a struct for our custom vertex format
@@ -15,13 +15,12 @@ Ffi.cdef[[
    } fm_instance;
 ]]
 
-local mat  = Ffi.typeof('fm_matrix')
-Mat4.newMatrix = mat
+Mat4.newMatrix = Ffi.typeof("fm_matrix")
 
 local temp = Mat4.newMatrix()
 
 function Mat4:clear()
-   local self = a.mat
+   local e = self.mat
 
    e[0],  e[1],  e[2],  e[3]  = 0, 0, 0, 0
    e[4],  e[5],  e[6],  e[7]  = 0, 0, 0, 0
@@ -90,8 +89,8 @@ function Mat4:scale(sx, sy, sz)
    return self:apply(temp)
 end
 
-function Mat4.apply(m, b)
-   local tmp, a, b = temp.mat, m.mat, b.mat
+function Mat4:apply(o)
+   local tmp, a, b = temp.mat, self.mat, o.mat
 
    tmp[0]  = a[0]  * b[0] + a[1]  * b[4] + a[2]  * b[8]  + a[3]  * b[12]
    tmp[1]  = a[0]  * b[1] + a[1]  * b[5] + a[2]  * b[9]  + a[3]  * b[13]
@@ -110,21 +109,22 @@ function Mat4.apply(m, b)
    tmp[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14]
    tmp[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]
  
-   for i=0, 15 do
+   for i = 0, 15 do
      a[i] = tmp[i]
    end
  
-   return m
+   return self
 end
 
 do
-   local inst = Ffi.typeof('fm_instance')
+   local inst = Ffi.typeof("fm_instance")
+   local mat  = Ffi.typeof("fm_matrix")
 
-   Mat4.matrixSize   = Ffi.sizeof(mat )
+   Mat4.matrixSize   = Ffi.sizeof(mat)
    Mat4.instanceSize = Ffi.sizeof(inst)
 
    function Mat4.castInstances(pointer)
-      return Ffi.cast('fm_instance*', pointer)
+      return Ffi.cast("fm_instance*", pointer)
    end
 
    Ffi.metatype(mat,  Mat4)
