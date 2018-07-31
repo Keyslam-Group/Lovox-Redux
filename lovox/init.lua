@@ -3,6 +3,7 @@ local PATH = (...):gsub('%.init$', '')
 local Lovox = {
    voxelData   = require(PATH..".voxelData"),
    depthBuffer = require(PATH..".depthBuffer"),
+   mat4        = require(PATH..".mat4"),
 }
 
 --- Checks if Lovox is supported on the system.

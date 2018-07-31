@@ -2,25 +2,29 @@
 
 #ifdef VERTEX
 
+attribute vec4 MatRow1;
+attribute vec4 MatRow2;
+attribute vec4 MatRow3;
+attribute vec4 MatRow4;
+
 uniform mat4 projection;
 
 // Transforms our voxel into screen space coordinates properly
 vec4 position(mat4 ortho, vec4 vertex) {
-    //projection * vec4(x, y, z, 1) = vec4(x, y-z, y, 1)
-    return ClipSpaceFromView * projection * TransformMatrix * vertex;
+    mat4 transform = mat4(MatRow1, MatRow2, MatRow3, MatRow4);
+    return ClipSpaceFromView * projection * TransformMatrix * transform * vertex;
 }
 #endif
 
 #ifdef PIXEL
-uniform sampler2DArray MainTex;
+
+
 
 // Samples from an Array image. Discards alpha values.
-void effect() {
-    vec4 pixel = Texel(MainTex, VaryingTexCoord.xyz);
-    
-    if (pixel.a == 0.0)
-        discard;
-    
-    love_PixelColor = pixel * VaryingColor;
+vec4 effect(vec4 color, sampler2D img, vec2 texture_coords, vec2 screen_coords) {
+   vec4 pixel = Texel(img, texture_coords);
+
+   return pixel * color;
 }
+
 #endif
