@@ -44,18 +44,11 @@ local function newModelAttributes(voxelCount)
    return modelAttributes, instanceData, vertexBuffer
 end
 
---- Creates a new mesh for voxels.
--- @param width, height, layer The dimensions of the source texture.
--- @param voxelCount The amount of voxels the mesh can hold.
--- @param usage How the mesh is supposed to be used (stream, dynamic, static).
--- @returns A new VoxelData object.
-function VoxelData.new(texture, layers, voxelCount, usage)
+local function newVertices(width, height, layers)
    local uvStep = 1 / layers
-   
-   local width, height = texture:getDimensions()
-   width = width / layers
 
    local vertices = {}
+
    for layer = 0, layers - 1 do
       local start_u, end_u = layer * uvStep, layer * uvStep + uvStep
       local o = (layer * 4)
@@ -68,24 +61,12 @@ function VoxelData.new(texture, layers, voxelCount, usage)
       vertices[o+4] = { width/2,  height/2, layer, end_u,   1}
    end
 
-   local modelAttributes, instanceData, vertexBuffer = newModelAttributes(voxelCount) 
+   return vertices
+end
 
-
-   local voxelData = setmetatable({
-      layers         = layers,
-      voxelCount     = voxelCount,
-      vertexCountPer = layers * 4,
-
-      modelAttributes = modelAttributes,
-      instanceData = instanceData,
-      vertexBuffer = vertexBuffer,
-
-      mesh = love.graphics.newMesh(VoxelData.vertexFormat, vertices, "triangles", usage),
-      
-      isDirty = false,
-   }, VoxelData)
-
+local function newVertexMap(layers)
    local vertexMap = {}
+
    for i = 0, layers - 1 do
       local v, o = i * 6, i * 4
       
@@ -96,52 +77,101 @@ function VoxelData.new(texture, layers, voxelCount, usage)
       vertexMap[v+5] = o + 3
       vertexMap[v+6] = o + 2
    end
-   voxelData.mesh:setVertexMap(vertexMap)
-   voxelData.mesh:setTexture(texture)
 
-   voxelData.mesh:attachAttribute("MatRow1", modelAttributes, "perinstance")
-   voxelData.mesh:attachAttribute("MatRow2", modelAttributes, "perinstance")
-   voxelData.mesh:attachAttribute("MatRow3", modelAttributes, "perinstance")
-   voxelData.mesh:attachAttribute("MatRow4", modelAttributes, "perinstance")
-
-   --voxelData.mesh:attachAttribute("VertexColor", modelAttributes)
-
-   return voxelData
+   return vertexMap
 end
 
---- Writes the data for a specific vertex.
--- @param offset The ID of the vertex.
--- @param x, y, z The position of the vertex.
--- @param u, v, m The UV values of the vertex.
--- @param r, g, b The colors of the vertex.
--- @returns self.
-function VoxelData:writeVertex(offset, x, y, z, u, v, m, r, g, b)
-   local vertex = self.vertices[offset]
-   vertex.x, vertex.y, vertex.z = x, y, z
-   vertex.u, vertex.v, vertex.m = u, v, m
-   vertex.r, vertex.g, vertex.b = r or 255, g or 255, b or 255
-   vertex.a = 255
+--- Creates a new mesh for voxels.
+-- @param width, height, layer The dimensions of the source texture.
+-- @param voxelCount The amount of voxels the mesh can hold.
+-- @param usage How the mesh is supposed to be used (stream, dynamic, static).
+-- @returns A new VoxelData object.
+function VoxelData.new(texture, layers, voxelCount, usage)
+   local vertices = newVertices(texture:getWidth() / layers, texture:getHeight(), layers)
+   local modelAttributes, instanceData, vertexBuffer = newModelAttributes(voxelCount) 
 
-   return self
+   local mesh = love.graphics.newMesh(VoxelData.vertexFormat, vertices, "triangles", usage)
+   mesh:setVertexMap(newVertexMap(layers))
+   mesh:setTexture(texture)
+
+   mesh:attachAttribute("MatRow1", modelAttributes, "perinstance")
+   mesh:attachAttribute("MatRow2", modelAttributes, "perinstance")
+   mesh:attachAttribute("MatRow3", modelAttributes, "perinstance")
+   mesh:attachAttribute("MatRow4", modelAttributes, "perinstance")
+
+   mesh:attachAttribute("VertexColor", modelAttributes, "perinstance")
+
+   return setmetatable({
+      voxelCount = voxelCount,
+
+      mesh            = mesh,
+      modelAttributes = modelAttributes,
+      instanceData    = instanceData,
+      vertexBuffer    = vertexBuffer,
+      
+      nextFreeIndex = 1,
+      isDirty       = false,
+   }, VoxelData)
 end
 
 --- Applies updated voxels to the mesh.
 -- @returns self
 function VoxelData:apply()
-   self.mesh:setVertices(self.byteData)
+   self.modelAttributes:setVertices(self.instanceData)
    self.isDirty = false
 
    return self
+end
+
+function VoxelData:set(index, ...)
+   -- TODO Check if index is out of range
+
+   local instance = self.vertexBuffer[index - 1]
+   
+   instance:setTransformation(...)
+
+   local r, g, b = love.graphics.getColor()
+   instance.r = r * 255
+   instance.g = g * 255
+   instance.b = b * 255
+   instance.a = 255
+
+   return self
+end
+
+function VoxelData:add(...)
+   -- TODO Check if the index is free
+   local index = self.nextFreeIndex
+
+   self:set(index, ...)
+   self.nextFreeIndex = index + 1
+
+   return index
+end
+
+function VoxelData:flush()
+   for i = 0, self.voxelCount - 1 do
+      local instance = self.vertexBuffer[i]
+      instance:clear()
+   end
+
+   self.nextFreeIndex = 1
+
+   return self
+end
+
+function VoxelData:getBufferSize()
+   return self.voxelCount
 end
 
 --- Draws a voxel.
 -- @returns self
 function VoxelData:draw()
    if self.isDirty then
-      --self:apply()
+      self:apply()
    end
 
-   love.graphics.drawInstanced(self.mesh, self.voxelCount, 100, 100)
+   love.graphics.drawInstanced(self.mesh, self.voxelCount)
 
    return self
 end

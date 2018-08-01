@@ -20,13 +20,13 @@ Mat4.newMatrix = Ffi.typeof("fm_matrix")
 local temp = Mat4.newMatrix()
 
 function Mat4:clone()
-   -- local out = Mat4.newMatrix()
+  local out = Mat4.newMatrix()
    -- for i=0, 15 do
    --    out.mat[i] = self.mat[i] --Possible to Ffi.copy
    -- end
    -- return out
 
-   return Mat4.newMatrix(self)
+  return Mat4.newMatrix(self)
 end
 
 function Mat4:getMatrix()
@@ -40,7 +40,7 @@ end
 
 local reuse = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 
-function Mat4:send (t)
+function Mat4:send(t)
    local e, t = self.mat, t or reuse
 
    t[1],  t[2],  t[3],  t[4]  = e[0], e[4], e[8],  e[12]
@@ -117,13 +117,14 @@ function Mat4:setShear(kx, ky)
    return self
 end
 
-function Mat4:setTransformation (x, y, z, angle, sx, sy,sz, ox, oy, oz, kx, ky)
+function Mat4:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx, ky)
    local e = self:reset().mat
 
    local ox, oy, oz = ox or 0, oy or 0, oz or 0
-   local kx, ky = kx or 0, ky or 0
-   local sx = sx or 1
-   local sy = sy or sx
+   local kx, ky     = kx or 0, ky or 0
+   local sx         = sx or 1
+   local sy         = sy or sx
+   local sz         = sz or sy
 
    local s, c = math.cos(angle or 0), math.sin(angle or 0)
 

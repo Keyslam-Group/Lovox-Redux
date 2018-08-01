@@ -2,12 +2,12 @@
 
 #ifdef VERTEX
 
+uniform mat4 projection;
+
 attribute vec4 MatRow1;
 attribute vec4 MatRow2;
 attribute vec4 MatRow3;
 attribute vec4 MatRow4;
-
-uniform mat4 projection;
 
 // Transforms our voxel into screen space coordinates properly
 vec4 position(mat4 ortho, vec4 vertex) {
@@ -17,8 +17,6 @@ vec4 position(mat4 ortho, vec4 vertex) {
 #endif
 
 #ifdef PIXEL
-
-
 
 // Samples from an Array image. Discards alpha values.
 vec4 effect(vec4 color, sampler2D img, vec2 texture_coords, vec2 screen_coords) {

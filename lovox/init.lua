@@ -29,18 +29,9 @@ function Lovox.isSupported()
    return true
 end
 
---- Draws a voxel to the screen immediately.
--- @param texture The source texture to render.
--- @param width, height, layer The dimensions of the source texture.
--- @param x, y, z The position to render the voxel at.
--- @param rotation The rotation factor of the voxel.
--- @param sx, sy The scale factor of the voxel.
--- @param r, g, b The color factor of the voxel.
-function Lovox.draw(texture, width, height, layers, x, y, z, rotation, sx, sy, r, g, b)
-   local voxelData = Lovox.voxelData(texture, width, height, layers, 1, "static")
-   voxelData:updateVoxel(1, x, y, z, rotation, sx, sy, r, g, b)
-   voxelData:apply()
-
+function Lovox.draw(texture, layers, x, y, z, rotation, sx, sy, sz, ox, oy, oz, kx, ky)
+   local voxelData = Lovox.voxelData(texture, layers, 1, "static")
+   voxelData:set(1, x, y, z, rotation, sx, sy, sz, ox, oy, oz, kx, ky)
    voxelData:draw()
 end
 
