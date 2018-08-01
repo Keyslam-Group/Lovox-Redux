@@ -14,10 +14,7 @@ function love.update(dt)
          local id = x * 4 + y
          local inst = myVoxelData.vertexBuffer[id]
 
-         inst:setIdentity()
-         inst:scale(1, 1, 1)
-            
-         inst:translate(x * 128, y * 64, 0)
+         inst:setTransformation(x * 64, y * 128, 0, math.pi, 1.5, 1.5, 1.5)
       end
    end
 

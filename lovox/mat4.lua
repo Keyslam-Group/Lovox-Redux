@@ -22,6 +22,7 @@ local temp = Mat4.newMatrix()
 function Mat4:clear()
    local e = self.mat
 
+   --Possible to Ffi.fill
    e[0],  e[1],  e[2],  e[3]  = 0, 0, 0, 0
    e[4],  e[5],  e[6],  e[7]  = 0, 0, 0, 0
    e[8],  e[9],  e[10], e[11] = 0, 0, 0, 0
@@ -33,6 +34,7 @@ end
 function Mat4:setIdentity()
    local e = self.mat
 
+   --Possible to Ffi.fill or Ffi.copy from a fixed identity matrix
    e[0],  e[1],  e[2],  e[3]  = 1, 0, 0, 0
    e[4],  e[5],  e[6],  e[7]  = 0, 1, 0, 0
    e[8],  e[9],  e[10], e[11] = 0, 0, 1, 0
@@ -74,6 +76,35 @@ function Mat4:setScale(sx, sy, sz)
    return self
 end
 
+function Mat4:setTransformation (x, y, z, angle, sx, sy,sz, ox, oy, oz, kx, ky)
+   local e = self:setIdentity().mat
+
+   local ox, oy, oz = ox or 0, oy or 0, oz or 0
+   local kx, ky = kx or 0, ky or 0
+   local sx = sx or 1
+   local sy = sy or sx
+
+   local s, c = math.cos(angle or 0), math.sin(angle or 0)
+
+   -- matrix multiplication carried out on paper:
+   -- |1 0 0 x| |c -s 0 0| |sx  0 0 0| | 1 ky 0 0| |1 0 0 -ox|
+   -- |0 1 0 y| |s  c 0 0| | 0 sy 0 0| |kx  1 0 0| |0 1 0 -oy|
+   -- |0 0 1 z| |0  0 1 0| | 0  0 1 0| | 0  0 1 0| |0 0 1 -oz|
+   -- |0 0 0 1| |0  0 0 1| | 0  0 0 1| | 0  0 0 1| |0 0 0  1 |
+   -- move      rotate        scale       skew       origin
+   e[0]  = c*sx - s*sy*kx
+   e[4]  = c*sx*ky - s*sy
+   e[1]  = s*sx + c*sy*kx
+   e[5]  = s*sx*ky + c*sy
+   e[10] = sz or 0
+
+   e[12] = -ox*e[0] -oy*e[4] +(x or 0)
+   e[13] = -ox*e[1] -oy*e[5] +(y or 0)
+   e[14] = -oz*e[10]         +(z or 0)
+
+   return self
+end
+
 function Mat4:translate(x, y, z)
    temp:setTranslation(x, y, z)
    return self:apply(temp)
@@ -110,7 +141,7 @@ function Mat4:apply(o)
    tmp[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]
  
    for i = 0, 15 do
-     a[i] = tmp[i]
+     b[i] = tmp[i] --Possible to Ffi.copy
    end
  
    return self
