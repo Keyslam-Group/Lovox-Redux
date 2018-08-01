@@ -19,6 +19,38 @@ Mat4.newMatrix = Ffi.typeof("fm_matrix")
 
 local temp = Mat4.newMatrix()
 
+function Mat4:clone()
+   -- local out = Mat4.newMatrix()
+   -- for i=0, 15 do
+   --    out.mat[i] = self.mat[i] --Possible to Ffi.copy
+   -- end
+   -- return out
+
+   return Mat4.newMatrix(self)
+end
+
+function Mat4:getMatrix()
+   local e = self.mat
+
+   return e[0], e[4], e[8],  e[12],
+          e[1], e[5], e[9],  e[13],
+          e[2], e[6], e[10], e[14],
+          e[3], e[7], e[11], e[15]
+end
+
+local reuse = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+
+function Mat4:send (t)
+   local e, t = self.mat, t or reuse
+
+   t[1],  t[2],  t[3],  t[4]  = e[0], e[4], e[8],  e[12]
+   t[5],  t[6],  t[7],  t[8]  = e[1], e[5], e[9],  e[13]
+   t[9],  t[10], t[11], t[12] = e[2], e[6], e[10], e[14]
+   t[13], t[14], t[15], t[16] = e[3], e[7], e[11], e[15]
+
+   return t
+end
+
 function Mat4:clear()
    local e = self.mat
 
@@ -31,7 +63,7 @@ function Mat4:clear()
    return self
 end
 
-function Mat4:setIdentity()
+function Mat4:reset()
    local e = self.mat
 
    --Possible to Ffi.fill or Ffi.copy from a fixed identity matrix
@@ -44,7 +76,7 @@ function Mat4:setIdentity()
 end
 
 function Mat4:setTranslation(x, y, z)
-   local e = self:setIdentity().mat
+   local e = self:reset().mat
 
    e[12] = x or 0
    e[13] = y or 0
@@ -56,7 +88,7 @@ end
 function Mat4:setRotation(angle)
    local c, s = math.cos(angle or 0), math.sin(angle or 0)
 
-   local e = self:setIdentity().mat
+   local e = self:reset().mat
 
    e[0] =  c
    e[4] = -s
@@ -67,7 +99,7 @@ function Mat4:setRotation(angle)
 end
 
 function Mat4:setScale(sx, sy, sz)
-   local e = self:setIdentity().mat
+   local e = self:reset().mat
 
    e[0]  = sx or 1
    e[5]  = sy or e[0]
@@ -77,7 +109,7 @@ function Mat4:setScale(sx, sy, sz)
 end
 
 function Mat4:setShear(kx, ky)
-   local e = self:setIdentity().mat
+   local e = self:reset().mat
 
    e[1]  = kx or 0
    e[4]  = ky or 0
@@ -86,7 +118,7 @@ function Mat4:setShear(kx, ky)
 end
 
 function Mat4:setTransformation (x, y, z, angle, sx, sy,sz, ox, oy, oz, kx, ky)
-   local e = self:setIdentity().mat
+   local e = self:reset().mat
 
    local ox, oy, oz = ox or 0, oy or 0, oz or 0
    local kx, ky = kx or 0, ky or 0
