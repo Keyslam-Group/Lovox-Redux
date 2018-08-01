@@ -54,7 +54,7 @@ function Mat4:setTranslation(x, y, z)
 end
 
 function Mat4:setRotation(angle)
-   local c, s = math.cos(angle), math.sin(angle)
+   local c, s = math.cos(angle or 0), math.sin(angle or 0)
 
    local e = self:setIdentity().mat
 
@@ -70,8 +70,17 @@ function Mat4:setScale(sx, sy, sz)
    local e = self:setIdentity().mat
 
    e[0]  = sx or 1
-   e[5]  = sy or 1
-   e[10] = sz or 1
+   e[5]  = sy or e[0]
+   e[10] = sz or e[5]
+
+   return self
+end
+
+function Mat4:setShear(kx, ky)
+   local e = self:setIdentity().mat
+
+   e[1]  = kx or 0
+   e[4]  = ky or 0
 
    return self
 end
@@ -117,6 +126,11 @@ end
 
 function Mat4:scale(sx, sy, sz)
    temp:setScale(sx, sy, sz)
+   return self:apply(temp)
+end
+
+function Mat4:shear(kx, ky)
+   temp:setShear(kx, ky)
    return self:apply(temp)
 end
 
