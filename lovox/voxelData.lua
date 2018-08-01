@@ -116,16 +116,15 @@ end
 
 --- Applies updated voxels to the mesh.
 -- @returns self
-function VoxelData:apply()
+function VoxelData:flush()
    self.modelAttributes:setVertices(self.instanceData)
-   self.isDirty = false
 
+   self.isDirty = false
    return self
 end
 
 function VoxelData:set(index, ...)
-   -- TODO Check if index is out of range
-
+   -- TODO Check if index is < nextFreeIndex
    local instance = self.vertexBuffer[index - 1]
    
    instance:setTransformation(...)
@@ -136,11 +135,12 @@ function VoxelData:set(index, ...)
    instance.b = b * 255
    instance.a = 255
 
+   self.isDirty = true
    return self
 end
 
 function VoxelData:add(...)
-   -- TODO Check if the index is free
+   -- TODO Check if the index is < voxelCount
    local index = self.nextFreeIndex
 
    self:set(index, ...)
@@ -149,26 +149,45 @@ function VoxelData:add(...)
    return index
 end
 
-function VoxelData:flush()
-   for i = 0, self.voxelCount - 1 do
+function VoxelData:clear()
+   for i = 0, self.nextFreeIndex - 2 do
       local instance = self.vertexBuffer[i]
       instance:clear()
    end
 
    self.nextFreeIndex = 1
 
+   self.isDirty = true
    return self
+end
+
+function Voxel:getCount()
+   return self.nextFreeIndex - 1
 end
 
 function VoxelData:getBufferSize()
    return self.voxelCount
 end
 
+function VoxelData:attachAttribute(...)
+  self.mesh:attachAttribute(...)
+end
+
+function VoxelData:getTexture()
+   return self.mesh:getTexture()
+end
+
+-- function VoxelData:setTexture(texture)
+--    -- Should this reevaluate the mesh?
+--    -- Mesh size is static so you would need to keep the number of layers
+--    self.mesh:setTexture(texture)
+-- end
+
 --- Draws a voxel.
 -- @returns self
 function VoxelData:draw()
    if self.isDirty then
-      self:apply()
+      self:flush()
    end
 
    love.graphics.drawInstanced(self.mesh, self.voxelCount)
