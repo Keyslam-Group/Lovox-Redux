@@ -49,9 +49,12 @@ end
 -- @param voxelCount The amount of voxels the mesh can hold.
 -- @param usage How the mesh is supposed to be used (stream, dynamic, static).
 -- @returns A new VoxelData object.
-function VoxelData.new(texture, width, height, layers, voxelCount, usage)
+function VoxelData.new(texture, layers, voxelCount, usage)
    local uvStep = 1 / layers
    
+   local width, height = texture:getDimensions()
+   width = width / layers
+
    local vertices = {}
    for layer = 0, layers - 1 do
       local start_u, end_u = layer * uvStep, layer * uvStep + uvStep

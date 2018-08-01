@@ -5,35 +5,29 @@ local Lovox = require("lovox")
 
 local img = love.graphics.newImage("boat/texture.png")
 
-local myVoxelData   = Lovox.voxelData(img, 64, 32, 16, 1000, "dynamic")
+local myVoxelData   = Lovox.voxelData(img, 16, 16, "dynamic")
 local myDepthBuffer = Lovox.depthBuffer()
 
-for x = 0, 9 do
-   for y = 0, 9 do
-      for z = 0, 9 do
-         local id = x * 100 + y * 10 + z + 1
+function love.update(dt)
+   for x = 0, 3 do
+      for y = 0, 3 do
+         local id = x * 4 + y
          local inst = myVoxelData.vertexBuffer[id]
 
          inst:setIdentity()
          inst:scale(1, 1, 1)
-         inst:translate(x * 64, y * 32, z * 32)
-         
-         
+            
+         inst:translate(x * 128, y * 64, 0)
       end
    end
-end
-myVoxelData.modelAttributes:setVertices(myVoxelData.instanceData)
 
-function love.update(dt)
-   
+   myVoxelData.modelAttributes:setVertices(myVoxelData.instanceData)
 end
 
 function love.draw()
-   love.graphics.rotate(0.4)
    myDepthBuffer:attach()
       myVoxelData:draw()
    myDepthBuffer:detach()
-   love.graphics.rotate(-0.4)
 
    myDepthBuffer:draw()
 
