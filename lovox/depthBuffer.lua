@@ -66,12 +66,21 @@ function DepthBuffer:detach()
    return self
 end
 
+--- Returns the Canvas (Texture) objects with the contents of the DepthBuffer.
+-- @returns color The color texture
+-- @returns depth The depth texture
+function DepthBuffer:getTexture()
+  return self.color, self.depth 
+end
+
 --- Renders a DepthBuffer to the screen.
 -- @param x, y The position to draw the DepthBuffer at
--- @param scale The scale of the DepthBuffer
+-- @param angle The angle to rotate the image
+-- @param sx The scale of the DepthBuffer in the X axis
+-- @param sy The scale of the DepthBuffer in the Y axis
 -- @return self
-function DepthBuffer:draw(x, y, scale)
-   love.graphics.draw(self.canvas[1], x, y, nil, scale, scale)
+function DepthBuffer:draw(...)
+   love.graphics.draw(self.color, ...)
 
    return self
 end
