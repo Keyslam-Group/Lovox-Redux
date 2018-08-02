@@ -8,11 +8,9 @@ local img = love.graphics.newImage("boat/texture.png")
 local myVoxelData   = Lovox.voxelData(img, 16, 256, "dynamic")
 local myDepthBuffer = Lovox.depthBuffer()
 
-local s = love.timer.getTime()
 for i = 1, 256 do
    myVoxelData:add(i * 64, 100)
 end
-print(love.timer.getTime() - s)
 
 function love.update(dt)
    myVoxelData.modelAttributes:setVertices(myVoxelData.instanceData)
@@ -32,7 +30,6 @@ function love.resize()
    myDepthBuffer:resize()
 end
 
-local y = 100
 function love.keypressed(key)
    if key == "q" then
       love.event.quit()
@@ -43,11 +40,6 @@ function love.keypressed(key)
       for i = 1, 16 do
          myVoxelData:add(i * 64, y)
       end
-   end
-
-   if key == "s" then
-      myVoxelData:add(x, 100, 0, love.math.random() * math.pi * 2)
-      x = x + 80
    end
 
    if key == "d" then
