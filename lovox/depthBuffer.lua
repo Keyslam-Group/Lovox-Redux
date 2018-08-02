@@ -10,7 +10,7 @@ DepthBuffer.__index = DepthBuffer
 -- @returns A new DepthBuffer object.
 function DepthBuffer.new(w, h)
    return setmetatable({
-      shader = nil,
+      shader = love.graphics.newShader(PATH.."/shader.glsl"),
       color  = nil,
       depth  = nil,
       canvas = nil,
@@ -23,7 +23,6 @@ end
 function DepthBuffer:resize(w, h)
    w, h = w or love.graphics.getWidth(), h or love.graphics.getHeight()
 
-   self.shader = love.graphics.newShader(PATH.."/shader.glsl")
    self.projection = {
       1,   0,  0, 0,
       0,   1, -1, 0,
