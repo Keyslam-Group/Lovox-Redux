@@ -143,8 +143,10 @@ function VoxelData:add(...)
 end
 
 function VoxelData:clear()
-   Ffi.fill(self.instanceData:getPointer(), self.instanceData:getSize())
+   local pointer = self.instanceData:getPointer()
+   local length  = self.instanceData:getSize()
    
+   Ffi.fill(pointer, length)
    self.nextFreeIndex = 1
    self.isDirty       = true
 
