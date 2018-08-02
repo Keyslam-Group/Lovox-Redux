@@ -9,8 +9,6 @@ local myVoxelData   = Lovox.voxelData(img, 16, 16, "dynamic")
 local myDepthBuffer = Lovox.depthBuffer()
 
 function love.update(dt)
-   
-
    myVoxelData.modelAttributes:setVertices(myVoxelData.instanceData)
 end
 

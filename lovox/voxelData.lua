@@ -170,7 +170,7 @@ function VoxelData:getBufferSize()
 end
 
 function VoxelData:attachAttribute(...)
-  self.mesh:attachAttribute(...)
+   self.mesh:attachAttribute(...)
 end
 
 function VoxelData:getTexture()

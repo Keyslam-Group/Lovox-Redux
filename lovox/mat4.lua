@@ -20,13 +20,13 @@ Mat4.newMatrix = Ffi.typeof("fm_matrix")
 local temp = Mat4.newMatrix()
 
 function Mat4:clone()
-  local out = Mat4.newMatrix()
+   local out = Mat4.newMatrix()
    -- for i=0, 15 do
    --    out.mat[i] = self.mat[i] --Possible to Ffi.copy
    -- end
    -- return out
 
-  return Mat4.newMatrix(self)
+   return Mat4.newMatrix(self)
 end
 
 function Mat4:getMatrix()
@@ -188,7 +188,7 @@ function Mat4:apply(o)
    tmp[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]
  
    for i = 0, 15 do
-     b[i] = tmp[i] --Possible to Ffi.copy
+      b[i] = tmp[i] --Possible to Ffi.copy
    end
  
    return self

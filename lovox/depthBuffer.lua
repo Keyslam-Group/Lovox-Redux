@@ -84,7 +84,7 @@ end
 -- @returns color The color texture
 -- @returns depth The depth texture
 function DepthBuffer:getTexture()
-  return self.color, self.depth 
+   return self.color, self.depth 
 end
 
 --- Renders a DepthBuffer to the screen.
