@@ -5,12 +5,14 @@ local DepthBuffer = {
 }
 DepthBuffer.__index = DepthBuffer
 
+local defaultShader = love.graphics.newShader(PATH.."/shader.glsl")
+
 --- Generates a new DepthBuffer.
 -- @param w, h The dimension of the DepthBuffer. Defaults to window size
 -- @returns A new DepthBuffer object.
 function DepthBuffer.new(w, h)
    return setmetatable({
-      shader = love.graphics.newShader(PATH.."/shader.glsl"),
+      shader = defaultShader,
       color  = nil,
       depth  = nil,
       canvas = nil,
@@ -30,13 +32,20 @@ function DepthBuffer:resize(w, h)
       0,   0,  0, 1,
    }
 
-   self.shader:send("projection", self.projection)
    self.color = love.graphics.newCanvas(w, h, {format = "rgba8"})
    self.depth = love.graphics.newCanvas(w, h, {format = "depth16"})
 
    self.canvas = {self.color, depthstencil = self.depth}
 
    return self
+end
+
+function DepthBuffer:setShader(shader)
+   self.shader = shader or defaultShader
+end
+
+function DepthBuffer:getShader()
+   return self.shader
 end
 
 --- Attaches a DepthBuffer.
@@ -47,6 +56,11 @@ function DepthBuffer:attach()
 
    local r, g, b = love.graphics.getBackgroundColor()
    love.graphics.clear(r, g, b, 1, true, 1)
+
+   if self.shader:hasUniform("projection") then
+      self.shader:send("projection", self.projection)
+   end
+
    love.graphics.setShader(self.shader)
 
    DepthBuffer.activeBuffer = self
