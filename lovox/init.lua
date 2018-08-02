@@ -13,7 +13,7 @@ do
    -- if not supported.array then
       -- notSupported = "Array images are not supported on this device"
    -- end
-  
+
    supported = love.graphics.getSupported()
 
    if not supported.glsl3 then

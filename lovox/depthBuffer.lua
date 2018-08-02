@@ -51,7 +51,7 @@ end
 --- Attaches a DepthBuffer.
 -- @returns self
 function DepthBuffer:attach()
-   love.graphics.setDepthMode("lequal", true)
+   love.graphics.setDepthMode("lequal", true) --luacheck: ignore
    love.graphics.setCanvas(self.canvas)
 
    local r, g, b = love.graphics.getBackgroundColor()
@@ -71,7 +71,7 @@ end
 --- Detaches a DepthBuffer.
 -- @returns self
 function DepthBuffer:detach()
-   love.graphics.setDepthMode()
+   love.graphics.setDepthMode() --luacheck: ignore
    love.graphics.setCanvas()
    love.graphics.setShader()
 
@@ -84,7 +84,7 @@ end
 -- @returns color The color texture
 -- @returns depth The depth texture
 function DepthBuffer:getTexture()
-   return self.color, self.depth 
+   return self.color, self.depth
 end
 
 --- Renders a DepthBuffer to the screen.
