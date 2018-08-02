@@ -143,8 +143,8 @@ function VoxelData:add(...)
    -- TODO Check if the index is < voxelCount
    local index = self.nextFreeIndex
 
-   self:set(index, ...)
    self.nextFreeIndex = index + 1
+   self:set(index, ...)
 
    return index
 end
