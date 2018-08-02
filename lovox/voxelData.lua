@@ -32,13 +32,6 @@ local function newModelAttributes(voxelCount)
    local vertexBuffer    = Mat4.castInstances(instanceData:getPointer())
    local modelAttributes = love.graphics.newMesh(VoxelData.instanceFormat, instanceData, usage)
 
-   for i = 0, voxelCount - 1 do
-      local inst = vertexBuffer[i]
-      --inst:setIdentity()
-
-      inst.r, inst.g, inst.b, inst.a = 255, 255, 255, 255
-   end
-
    modelAttributes:setVertices(instanceData)
 
    return modelAttributes, instanceData, vertexBuffer
@@ -118,8 +111,8 @@ end
 -- @returns self
 function VoxelData:flush()
    self.modelAttributes:setVertices(self.instanceData)
-
    self.isDirty = false
+
    return self
 end
 
@@ -150,18 +143,15 @@ function VoxelData:add(...)
 end
 
 function VoxelData:clear()
-   for i = 0, self.nextFreeIndex - 2 do
-      local instance = self.vertexBuffer[i]
-      instance:clear()
-   end
-
+   Ffi.fill(self.instanceData:getPointer(), self.instanceData:getSize())
+   
    self.nextFreeIndex = 1
+   self.isDirty       = true
 
-   self.isDirty = true
    return self
 end
 
-function Voxel:getCount()
+function VoxelData:getCount()
    return self.nextFreeIndex - 1
 end
 
