@@ -15,18 +15,19 @@ end
 function love.update()
 end
 
-function love.draw()
-   myCamera:attach()
-      myVoxelBatch:draw()
-   myCamera:detach()
+local function draw()
+   myVoxelBatch:draw()
+end
 
-   myCamera:draw()
+function love.draw()
+   myCamera:renderTo(draw)
+   myCamera:render()
 
    love.graphics.print(love.timer.getFPS())
 end
 
-function love.resize()
-   myCamera:resize()
+function love.resize(w, h)
+   myCamera:resize(w, h)
 end
 
 function love.keypressed(key)

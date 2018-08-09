@@ -26,7 +26,7 @@ local function newModelAttributes(voxelCount, usage)
 
    local instanceData    = love.data.newByteData(memoryUsage) --luacheck: ignore
    local vertexBuffer    = Transform.castInstances(instanceData:getPointer())
-   local modelAttributes = love.graphics.newMesh(VoxelBatch.instanceFormat, instanceData, usage)
+   local modelAttributes = love.graphics.newMesh(VoxelBatch.instanceFormat, instanceData, "points", usage)
 
    modelAttributes:setVertices(instanceData)
 
