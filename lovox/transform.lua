@@ -3,6 +3,10 @@ local Ffi = require("ffi")
 local Transform   = {}
 Transform.__index = Transform
 
+-- Localize 'cos' and 'sin' for a bit more performance in VoxelBatch:updateVoxel
+local cos = math.cos
+local sin = math.sin
+
 -- Define a struct for our custom vertex format
 Ffi.cdef[[
    typedef struct {
@@ -20,7 +24,7 @@ Transform.newMatrix = Ffi.typeof("fm_matrix")
 local temp = Transform.newMatrix()
 
 function Transform:clone()
-   local out = Transform.newMatrix()
+   -- local out = Transform.newMatrix()
    -- for i=0, 15 do
    --    out.mat[i] = self.mat[i] --Possible to Ffi.copy
    -- end
@@ -40,8 +44,8 @@ end
 
 local reuse = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 
-function Transform:send(t)
-   local e, t = self.mat, t or reuse
+function Transform:send(tab)
+   local e, t = self.mat, tab or reuse
 
    t[1],  t[2],  t[3],  t[4]  = e[0], e[4], e[8],  e[12]
    t[5],  t[6],  t[7],  t[8]  = e[1], e[5], e[9],  e[13]
@@ -86,7 +90,7 @@ function Transform:setTranslation(x, y, z)
 end
 
 function Transform:setRotation(angle)
-   local c, s = math.cos(angle or 0), math.sin(angle or 0)
+   local c, s = cos(angle or 0), sin(angle or 0)
 
    local e = self:reset().mat
 
@@ -120,13 +124,13 @@ end
 function Transform:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx, ky)
    local e = self:reset().mat
 
-   local ox, oy, oz = ox or 0, oy or 0, oz or 0
-   local kx, ky     = kx or 0, ky or 0
-   local sx         = sx or 1
-   local sy         = sy or sx
-   local sz         = sz or sy
+   ox, oy, oz = ox or 0, oy or 0, oz or 0
+   kx, ky     = kx or 0, ky or 0
+   sx         = sx or 1
+   sy         = sy or sx
+   sz         = sz or sy
 
-   local s, c = math.cos(angle or 0), math.sin(angle or 0)
+   local s, c = cos(angle or 0), sin(angle or 0)
 
    -- matrix multiplication carried out on paper:
    -- |1 0 0 x| |c -s 0 0| |sx  0 0 0| | 1 ky 0 0| |1 0 0 -ox|
@@ -186,11 +190,11 @@ function Transform:apply(o)
    tmp[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9]  + a[15] * b[13]
    tmp[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14]
    tmp[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]
- 
+
    for i = 0, 15 do
       b[i] = tmp[i] --Possible to Ffi.copy
    end
- 
+
    return self
 end
 

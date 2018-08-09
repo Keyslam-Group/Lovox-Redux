@@ -3,10 +3,6 @@ local PATH = (...):gsub('%.[^%.]+$', '')
 local Ffi       = require("ffi")
 local Transform = require(PATH..".transform")
 
--- Localize 'cos' and 'sin' for a bit more performance in VoxelBatch:updateVoxel
-local cos = math.cos
-local sin = math.sin
-
 -- Define the module, as well as the vertex format
 local VoxelBatch = {
    vertexFormat = {
@@ -25,10 +21,10 @@ local VoxelBatch = {
 }
 VoxelBatch.__index = VoxelBatch
 
-local function newModelAttributes(voxelCount)
+local function newModelAttributes(voxelCount, usage)
    local memoryUsage = voxelCount * Transform.instanceSize
 
-   local instanceData    = love.data.newByteData(memoryUsage)
+   local instanceData    = love.data.newByteData(memoryUsage) --luacheck: ignore
    local vertexBuffer    = Transform.castInstances(instanceData:getPointer())
    local modelAttributes = love.graphics.newMesh(VoxelBatch.instanceFormat, instanceData, usage)
 
@@ -46,8 +42,6 @@ local function newVertices(width, height, layers)
       local start_u, end_u = layer * uvStep, layer * uvStep + uvStep
       local o = (layer * 4)
 
-      local z = layer
-
       vertices[o+1] = {-width/2, -height/2, layer, start_u, 0}
       vertices[o+2] = { width/2, -height/2, layer, end_u,   0}
       vertices[o+3] = {-width/2,  height/2, layer, start_u, 1}
@@ -62,7 +56,7 @@ local function newVertexMap(layers)
 
    for i = 0, layers - 1 do
       local v, o = i * 6, i * 4
-      
+
       vertexMap[v+1] = o + 1
       vertexMap[v+2] = o + 2
       vertexMap[v+3] = o + 3
@@ -81,9 +75,9 @@ end
 -- @returns A new VoxelBatch object.
 function VoxelBatch.new(texture, layers, voxelCount, usage)
    local vertices = newVertices(texture:getWidth() / layers, texture:getHeight(), layers)
-   local modelAttributes, instanceData, vertexBuffer = newModelAttributes(voxelCount) 
+   local modelAttributes, instanceData, vertexBuffer = newModelAttributes(voxelCount, usage)
 
-   local mesh = love.graphics.newMesh(VoxelBatch.vertexFormat, vertices, "triangles", usage)
+   local mesh = love.graphics.newMesh(VoxelBatch.vertexFormat, vertices, "triangles", "static")
    mesh:setVertexMap(newVertexMap(layers))
    mesh:setTexture(texture)
 
@@ -101,7 +95,7 @@ function VoxelBatch.new(texture, layers, voxelCount, usage)
       modelAttributes = modelAttributes,
       instanceData    = instanceData,
       vertexBuffer    = vertexBuffer,
-      
+
       nextFreeIndex = 1,
       isDirty       = false,
    }, VoxelBatch)
@@ -119,7 +113,7 @@ end
 function VoxelBatch:set(index, ...)
    -- TODO Check if index is < nextFreeIndex
    local instance = self.vertexBuffer[index - 1]
-   
+
    instance:setTransformation(...)
 
    local r, g, b = love.graphics.getColor()
@@ -144,7 +138,7 @@ end
 
 function VoxelBatch:clear()
    Ffi.fill(self.instanceData:getPointer(), self.instanceData:getSize())
-   
+
    self.nextFreeIndex = 1
    self.isDirty       = true
 
@@ -180,7 +174,7 @@ function VoxelBatch:draw()
       self:flush()
    end
 
-   love.graphics.drawInstanced(self.mesh, self.voxelCount)
+   love.graphics.drawInstanced(self.mesh, self.voxelCount) --luacheck: ignore
 
    return self
 end

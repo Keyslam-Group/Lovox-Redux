@@ -12,7 +12,7 @@ for i = 1, 256 do
    myVoxelBatch:add(i * 64, 100)
 end
 
-function love.update(dt)
+function love.update()
 end
 
 function love.draw()
@@ -37,7 +37,6 @@ function love.keypressed(key)
    if key == "a" then
       for i = 1, 16 do
          myVoxelBatch:set(i, i * 64, 300)
-         
       end
    end
 

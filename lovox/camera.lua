@@ -51,7 +51,7 @@ end
 --- Attaches a Camera.
 -- @returns self
 function Camera:attach()
-   love.graphics.setDepthMode("lequal", true)
+   love.graphics.setDepthMode("lequal", true) --luacheck: ignore
    love.graphics.setCanvas(self.canvas)
 
    local r, g, b = love.graphics.getBackgroundColor()
@@ -71,7 +71,7 @@ end
 --- Detaches a Camera.
 -- @returns self
 function Camera:detach()
-   love.graphics.setDepthMode()
+   love.graphics.setDepthMode() --luacheck: ignore
    love.graphics.setCanvas()
    love.graphics.setShader()
 
@@ -84,7 +84,7 @@ end
 -- @returns color The color texture
 -- @returns depth The depth texture
 function Camera:getTexture()
-   return self.color, self.depth 
+   return self.color, self.depth
 end
 
 --- Renders a Camera to the screen.
