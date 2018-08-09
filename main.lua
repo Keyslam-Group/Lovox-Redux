@@ -5,29 +5,28 @@ local Lovox = require("lovox")
 
 local img = love.graphics.newImage("boat/texture.png")
 
-local myVoxelData   = Lovox.voxelData(img, 16, 256, "dynamic")
-local myDepthBuffer = Lovox.depthBuffer()
+local myVoxelBatch = Lovox.voxelBatch(img, 16, 256, "dynamic")
+local myCamera     = Lovox.camera()
 
 for i = 1, 256 do
-   myVoxelData:add(i * 64, 100)
+   myVoxelBatch:add(i * 64, 100)
 end
 
 function love.update(dt)
-   myVoxelData.modelAttributes:setVertices(myVoxelData.instanceData)
 end
 
 function love.draw()
-   myDepthBuffer:attach()
-      myVoxelData:draw()
-   myDepthBuffer:detach()
+   myCamera:attach()
+      myVoxelBatch:draw()
+   myCamera:detach()
 
-   myDepthBuffer:draw()
+   myCamera:draw()
 
    love.graphics.print(love.timer.getFPS())
 end
 
 function love.resize()
-   myDepthBuffer:resize()
+   myCamera:resize()
 end
 
 function love.keypressed(key)
@@ -36,13 +35,13 @@ function love.keypressed(key)
    end
 
    if key == "a" then
-      y = y + 64
       for i = 1, 16 do
-         myVoxelData:add(i * 64, y)
+         myVoxelBatch:set(i, i * 64, 300)
+         
       end
    end
 
    if key == "d" then
-      myVoxelData:flush()
+      myVoxelBatch:clear()
    end
 end

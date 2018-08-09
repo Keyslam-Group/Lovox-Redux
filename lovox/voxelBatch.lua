@@ -1,14 +1,14 @@
 local PATH = (...):gsub('%.[^%.]+$', '')
 
-local Ffi  = require("ffi")
-local Mat4 = require(PATH..".mat4")
+local Ffi       = require("ffi")
+local Transform = require(PATH..".transform")
 
--- Localize 'cos' and 'sin' for a bit more performance in VoxelData:updateVoxel
+-- Localize 'cos' and 'sin' for a bit more performance in VoxelBatch:updateVoxel
 local cos = math.cos
 local sin = math.sin
 
 -- Define the module, as well as the vertex format
-local VoxelData = {
+local VoxelBatch = {
    vertexFormat = {
       {"VertexPosition", "float", 3},
       {"VertexTexCoord", "float", 2},
@@ -23,14 +23,14 @@ local VoxelData = {
       {"VertexColor", "byte", 4}
    }
 }
-VoxelData.__index = VoxelData
+VoxelBatch.__index = VoxelBatch
 
 local function newModelAttributes(voxelCount)
-   local memoryUsage = voxelCount * Mat4.instanceSize
+   local memoryUsage = voxelCount * Transform.instanceSize
 
    local instanceData    = love.data.newByteData(memoryUsage)
-   local vertexBuffer    = Mat4.castInstances(instanceData:getPointer())
-   local modelAttributes = love.graphics.newMesh(VoxelData.instanceFormat, instanceData, usage)
+   local vertexBuffer    = Transform.castInstances(instanceData:getPointer())
+   local modelAttributes = love.graphics.newMesh(VoxelBatch.instanceFormat, instanceData, usage)
 
    modelAttributes:setVertices(instanceData)
 
@@ -78,12 +78,12 @@ end
 -- @param width, height, layer The dimensions of the source texture.
 -- @param voxelCount The amount of voxels the mesh can hold.
 -- @param usage How the mesh is supposed to be used (stream, dynamic, static).
--- @returns A new VoxelData object.
-function VoxelData.new(texture, layers, voxelCount, usage)
+-- @returns A new VoxelBatch object.
+function VoxelBatch.new(texture, layers, voxelCount, usage)
    local vertices = newVertices(texture:getWidth() / layers, texture:getHeight(), layers)
    local modelAttributes, instanceData, vertexBuffer = newModelAttributes(voxelCount) 
 
-   local mesh = love.graphics.newMesh(VoxelData.vertexFormat, vertices, "triangles", usage)
+   local mesh = love.graphics.newMesh(VoxelBatch.vertexFormat, vertices, "triangles", usage)
    mesh:setVertexMap(newVertexMap(layers))
    mesh:setTexture(texture)
 
@@ -104,19 +104,19 @@ function VoxelData.new(texture, layers, voxelCount, usage)
       
       nextFreeIndex = 1,
       isDirty       = false,
-   }, VoxelData)
+   }, VoxelBatch)
 end
 
 --- Applies updated voxels to the mesh.
 -- @returns self
-function VoxelData:flush()
+function VoxelBatch:flush()
    self.modelAttributes:setVertices(self.instanceData)
    self.isDirty = false
 
    return self
 end
 
-function VoxelData:set(index, ...)
+function VoxelBatch:set(index, ...)
    -- TODO Check if index is < nextFreeIndex
    local instance = self.vertexBuffer[index - 1]
    
@@ -126,13 +126,13 @@ function VoxelData:set(index, ...)
    instance.r = r * 255
    instance.g = g * 255
    instance.b = b * 255
-   instance.a = 255
+   instance.a =     255
 
    self.isDirty = true
    return self
 end
 
-function VoxelData:add(...)
+function VoxelBatch:add(...)
    -- TODO Check if the index is < voxelCount
    local index = self.nextFreeIndex
 
@@ -142,7 +142,7 @@ function VoxelData:add(...)
    return index
 end
 
-function VoxelData:clear()
+function VoxelBatch:clear()
    Ffi.fill(self.instanceData:getPointer(), self.instanceData:getSize())
    
    self.nextFreeIndex = 1
@@ -151,23 +151,23 @@ function VoxelData:clear()
    return self
 end
 
-function VoxelData:getCount()
+function VoxelBatch:getCount()
    return self.nextFreeIndex - 1
 end
 
-function VoxelData:getBufferSize()
+function VoxelBatch:getBufferSize()
    return self.voxelCount
 end
 
-function VoxelData:attachAttribute(...)
+function VoxelBatch:attachAttribute(...)
    self.mesh:attachAttribute(...)
 end
 
-function VoxelData:getTexture()
+function VoxelBatch:getTexture()
    return self.mesh:getTexture()
 end
 
--- function VoxelData:setTexture(texture)
+-- function VoxelBatch:setTexture(texture)
 --    -- Should this reevaluate the mesh?
 --    -- Mesh size is static so you would need to keep the number of layers
 --    self.mesh:setTexture(texture)
@@ -175,7 +175,7 @@ end
 
 --- Draws a voxel.
 -- @returns self
-function VoxelData:draw()
+function VoxelBatch:draw()
    if self.isDirty then
       self:flush()
    end
@@ -185,6 +185,6 @@ function VoxelData:draw()
    return self
 end
 
-return setmetatable(VoxelData, {
-   __call = function(_, ...) return VoxelData.new(...) end,
+return setmetatable(VoxelBatch, {
+   __call = function(_, ...) return VoxelBatch.new(...) end,
 })

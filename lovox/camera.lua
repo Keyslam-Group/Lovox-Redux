@@ -1,28 +1,28 @@
 local PATH = (...):gsub('%.[^%.]+$', '')
 
-local DepthBuffer = {
-   activeBuffer = nil,
+local Camera = {
+   activeCamera = nil,
 }
-DepthBuffer.__index = DepthBuffer
+Camera.__index = Camera
 
 local defaultShader = love.graphics.newShader(PATH.."/shader.glsl")
 
---- Generates a new DepthBuffer.
--- @param w, h The dimension of the DepthBuffer. Defaults to window size
--- @returns A new DepthBuffer object.
-function DepthBuffer.new(w, h)
+--- Generates a new Camera.
+-- @param w, h The dimension of the Camera. Defaults to window size
+-- @returns A new Camera object.
+function Camera.new(w, h)
    return setmetatable({
       shader = defaultShader,
       color  = nil,
       depth  = nil,
       canvas = nil,
-   }, DepthBuffer):resize(w, h)
+   }, Camera):resize(w, h)
 end
 
---- Resizes the DepthBuffer.
--- @param w, h The dimension of the DepthBuffer. Defaults to window size
+--- Resizes the Camera.
+-- @param w, h The dimension of the Camera. Defaults to window size
 -- @returns self.
-function DepthBuffer:resize(w, h)
+function Camera:resize(w, h)
    w, h = w or love.graphics.getWidth(), h or love.graphics.getHeight()
 
    self.projection = {
@@ -40,17 +40,17 @@ function DepthBuffer:resize(w, h)
    return self
 end
 
-function DepthBuffer:setShader(shader)
+function Camera:setShader(shader)
    self.shader = shader or defaultShader
 end
 
-function DepthBuffer:getShader()
+function Camera:getShader()
    return self.shader
 end
 
---- Attaches a DepthBuffer.
+--- Attaches a Camera.
 -- @returns self
-function DepthBuffer:attach()
+function Camera:attach()
    love.graphics.setDepthMode("lequal", true)
    love.graphics.setCanvas(self.canvas)
 
@@ -63,42 +63,42 @@ function DepthBuffer:attach()
 
    love.graphics.setShader(self.shader)
 
-   DepthBuffer.activeBuffer = self
+   Camera.activeCamera = self
 
    return self
 end
 
---- Detaches a DepthBuffer.
+--- Detaches a Camera.
 -- @returns self
-function DepthBuffer:detach()
+function Camera:detach()
    love.graphics.setDepthMode()
    love.graphics.setCanvas()
    love.graphics.setShader()
 
-   DepthBuffer.activeBuffer = nil
+   Camera.activeCamera = nil
 
    return self
 end
 
---- Returns the Canvas (Texture) objects with the contents of the DepthBuffer.
+--- Returns the Canvas (Texture) objects with the contents of the Camera.
 -- @returns color The color texture
 -- @returns depth The depth texture
-function DepthBuffer:getTexture()
+function Camera:getTexture()
    return self.color, self.depth 
 end
 
---- Renders a DepthBuffer to the screen.
--- @param x, y The position to draw the DepthBuffer at
+--- Renders a Camera to the screen.
+-- @param x, y The position to draw the Camera at
 -- @param angle The angle to rotate the image
--- @param sx The scale of the DepthBuffer in the X axis
--- @param sy The scale of the DepthBuffer in the Y axis
+-- @param sx The scale of the Camera in the X axis
+-- @param sy The scale of the Camera in the Y axis
 -- @return self
-function DepthBuffer:draw(...)
+function Camera:draw(...)
    love.graphics.draw(self.color, ...)
 
    return self
 end
 
-return setmetatable(DepthBuffer, {
-   __call = function(_, ...) return DepthBuffer.new(...) end,
+return setmetatable(Camera, {
+   __call = function(_, ...) return Camera.new(...) end,
 })

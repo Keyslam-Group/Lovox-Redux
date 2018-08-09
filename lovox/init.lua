@@ -1,25 +1,24 @@
 local PATH = (...):gsub('%.init$', '')
 
 local Lovox = {
-   voxelData   = require(PATH..".voxelData"),
-   depthBuffer = require(PATH..".depthBuffer"),
-   mat4        = require(PATH..".mat4"),
+   voxelBatch = require(PATH..".voxelBatch"),
+   camera     = require(PATH..".camera"),
+   transform  = require(PATH..".transform"),
 }
 
 local notSupported = false
 do
-   local supported -- = love.graphics.getTextureTypes()
-
-   -- if not supported.array then
-      -- notSupported = "Array images are not supported on this device"
-   -- end
-  
-   supported = love.graphics.getSupported()
+   local supported = love.graphics.getSupported()
 
    if not supported.glsl3 then
       notSupported = "GLSL 3 shaders are not supported on this device"
    elseif not supported.instancing then
       notSupported = "Mesh instancing is not supported on this device"
+   end
+
+   local status = jit.status()
+   if not status then
+      notSupported = "FFI is not enabled"
    end
 end
 
@@ -34,9 +33,9 @@ function Lovox.isSupported()
 end
 
 function Lovox.draw(texture, layers, x, y, z, rotation, sx, sy, sz, ox, oy, oz, kx, ky)
-   local voxelData = Lovox.voxelData(texture, layers, 1, "static")
-   voxelData:set(1, x, y, z, rotation, sx, sy, sz, ox, oy, oz, kx, ky)
-   voxelData:draw()
+   local voxelBatch = Lovox.voxelBatch(texture, layers, 1, "static")
+   voxelBatch:set(1, x, y, z, rotation, sx, sy, sz, ox, oy, oz, kx, ky)
+   voxelBatch:draw()
 end
 
 return Lovox

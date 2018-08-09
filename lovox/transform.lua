@@ -1,7 +1,7 @@
 local Ffi = require("ffi")
 
-local Mat4   = {}
-Mat4.__index = Mat4
+local Transform   = {}
+Transform.__index = Transform
 
 -- Define a struct for our custom vertex format
 Ffi.cdef[[
@@ -15,21 +15,21 @@ Ffi.cdef[[
    } fm_instance;
 ]]
 
-Mat4.newMatrix = Ffi.typeof("fm_matrix")
+Transform.newMatrix = Ffi.typeof("fm_matrix")
 
-local temp = Mat4.newMatrix()
+local temp = Transform.newMatrix()
 
-function Mat4:clone()
-   local out = Mat4.newMatrix()
+function Transform:clone()
+   local out = Transform.newMatrix()
    -- for i=0, 15 do
    --    out.mat[i] = self.mat[i] --Possible to Ffi.copy
    -- end
    -- return out
 
-   return Mat4.newMatrix(self)
+   return Transform.newMatrix(self)
 end
 
-function Mat4:getMatrix()
+function Transform:getMatrix()
    local e = self.mat
 
    return e[0], e[4], e[8],  e[12],
@@ -40,7 +40,7 @@ end
 
 local reuse = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 
-function Mat4:send(t)
+function Transform:send(t)
    local e, t = self.mat, t or reuse
 
    t[1],  t[2],  t[3],  t[4]  = e[0], e[4], e[8],  e[12]
@@ -51,7 +51,7 @@ function Mat4:send(t)
    return t
 end
 
-function Mat4:clear()
+function Transform:clear()
    local e = self.mat
 
    --Possible to Ffi.fill
@@ -63,7 +63,7 @@ function Mat4:clear()
    return self
 end
 
-function Mat4:reset()
+function Transform:reset()
    local e = self.mat
 
    --Possible to Ffi.fill or Ffi.copy from a fixed identity matrix
@@ -75,7 +75,7 @@ function Mat4:reset()
    return self
 end
 
-function Mat4:setTranslation(x, y, z)
+function Transform:setTranslation(x, y, z)
    local e = self:reset().mat
 
    e[12] = x or 0
@@ -85,7 +85,7 @@ function Mat4:setTranslation(x, y, z)
    return self
 end
 
-function Mat4:setRotation(angle)
+function Transform:setRotation(angle)
    local c, s = math.cos(angle or 0), math.sin(angle or 0)
 
    local e = self:reset().mat
@@ -98,7 +98,7 @@ function Mat4:setRotation(angle)
    return self
 end
 
-function Mat4:setScale(sx, sy, sz)
+function Transform:setScale(sx, sy, sz)
    local e = self:reset().mat
 
    e[0]  = sx or 1
@@ -108,7 +108,7 @@ function Mat4:setScale(sx, sy, sz)
    return self
 end
 
-function Mat4:setShear(kx, ky)
+function Transform:setShear(kx, ky)
    local e = self:reset().mat
 
    e[1]  = kx or 0
@@ -117,7 +117,7 @@ function Mat4:setShear(kx, ky)
    return self
 end
 
-function Mat4:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx, ky)
+function Transform:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx, ky)
    local e = self:reset().mat
 
    local ox, oy, oz = ox or 0, oy or 0, oz or 0
@@ -147,27 +147,27 @@ function Mat4:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx, ky)
    return self
 end
 
-function Mat4:translate(x, y, z)
+function Transform:translate(x, y, z)
    temp:setTranslation(x, y, z)
    return self:apply(temp)
 end
 
-function Mat4:rotate(angle)
+function Transform:rotate(angle)
    temp:setRotation(angle)
    return self:apply(temp)
 end
 
-function Mat4:scale(sx, sy, sz)
+function Transform:scale(sx, sy, sz)
    temp:setScale(sx, sy, sz)
    return self:apply(temp)
 end
 
-function Mat4:shear(kx, ky)
+function Transform:shear(kx, ky)
    temp:setShear(kx, ky)
    return self:apply(temp)
 end
 
-function Mat4:apply(o)
+function Transform:apply(o)
    local tmp, a, b = temp.mat, self.mat, o.mat
 
    tmp[0]  = a[0]  * b[0] + a[1]  * b[4] + a[2]  * b[8]  + a[3]  * b[12]
@@ -198,15 +198,15 @@ do
    local inst = Ffi.typeof("fm_instance")
    local mat  = Ffi.typeof("fm_matrix")
 
-   Mat4.matrixSize   = Ffi.sizeof(mat)
-   Mat4.instanceSize = Ffi.sizeof(inst)
+   Transform.matrixSize   = Ffi.sizeof(mat)
+   Transform.instanceSize = Ffi.sizeof(inst)
 
-   function Mat4.castInstances(pointer)
+   function Transform.castInstances(pointer)
       return Ffi.cast("fm_instance*", pointer)
    end
 
-   Ffi.metatype(mat,  Mat4)
-   Ffi.metatype(inst, Mat4)
+   Ffi.metatype(mat,  Transform)
+   Ffi.metatype(inst, Transform)
 end
 
-return Mat4
+return Transform
