@@ -16,6 +16,7 @@ Ffi.cdef[[
    typedef struct {
       float mat[16];
       unsigned char r, g, b, a;
+      float frame;
    } fm_instance;
 ]]
 

@@ -32,10 +32,4 @@ function Lovox.isSupported()
    return true
 end
 
-function Lovox.draw(texture, layers, x, y, z, rotation, sx, sy, sz, ox, oy, oz, kx, ky)
-   local voxelBatch = Lovox.voxelBatch(texture, layers, 1, "static")
-   voxelBatch:set(1, x, y, z, rotation, sx, sy, sz, ox, oy, oz, kx, ky)
-   voxelBatch:draw()
-end
-
 return Lovox

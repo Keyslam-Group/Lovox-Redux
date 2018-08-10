@@ -16,7 +16,8 @@ local VoxelBatch = {
       {"MatRow3", "float", 4},
       {"MatRow4", "float", 4},
 
-      {"VertexColor", "byte", 4}
+      {"VertexColor",    "byte",  4},
+      {"AnimationFrame", "float", 1},
    }
 }
 VoxelBatch.__index = VoxelBatch
@@ -86,9 +87,11 @@ function VoxelBatch.new(texture, layers, voxelCount, usage)
    mesh:attachAttribute("MatRow3", modelAttributes, "perinstance")
    mesh:attachAttribute("MatRow4", modelAttributes, "perinstance")
 
-   mesh:attachAttribute("VertexColor", modelAttributes, "perinstance")
+   mesh:attachAttribute("VertexColor",    modelAttributes, "perinstance")
+   mesh:attachAttribute("AnimationFrame", modelAttributes, "perinstance")
 
    return setmetatable({
+      texture    = texture,
       voxelCount = voxelCount,
 
       mesh            = mesh,
@@ -110,19 +113,42 @@ function VoxelBatch:flush()
    return self
 end
 
-function VoxelBatch:set(index, ...)
+function VoxelBatch:setTransformation(index, ...)
    -- TODO Check if index is < nextFreeIndex
    local instance = self.vertexBuffer[index - 1]
 
    instance:setTransformation(...)
 
-   local r, g, b = love.graphics.getColor()
-   instance.r = r * 255
-   instance.g = g * 255
-   instance.b = b * 255
-   instance.a =     255
+   self.isDirty = true
+   return self
+end
+
+function VoxelBatch:setColor(index, r, g, b, a) --luacheck: ignore
+   -- TODO Check if index is < nextFreeIndex
+   local instance = self.vertexBuffer[index - 1]
+
+   local cr, cg, cb, ca = love.graphics.getColor() --luacheck: ignore
+   instance.r = (r or cr) * 255
+   instance.g = (g or cg) * 255
+   instance.b = (b or cb) * 255
+   instance.a = 255 --(a or ca) * 255
 
    self.isDirty = true
+   return self
+end
+
+function VoxelBatch:setAnimationFrame(index, frame)
+   if self.texture:getTextureType() == "array" then
+      if frame >= 1 and frame <= self.texture:getLayers() then
+         local instance = self.vertexBuffer[index - 1]
+
+         instance.frame = math.floor(frame)
+
+         self.isDirty = true
+      --else error
+      end
+   end
+
    return self
 end
 
@@ -131,7 +157,8 @@ function VoxelBatch:add(...)
    local index = self.nextFreeIndex
 
    self.nextFreeIndex = index + 1
-   self:set(index, ...)
+   self:setTransformation(index, ...)
+   self:setColor(index)
 
    return index
 end
@@ -158,13 +185,16 @@ function VoxelBatch:attachAttribute(...)
 end
 
 function VoxelBatch:getTexture()
-   return self.mesh:getTexture()
+   return self.texture
 end
 
 -- function VoxelBatch:setTexture(texture)
+--    self.texture = texture
+--    self.mesh:setTexture(texture)
+--
 --    -- Should this reevaluate the mesh?
 --    -- Mesh size is static so you would need to keep the number of layers
---    self.mesh:setTexture(texture)
+--    return self
 -- end
 
 --- Draws a voxel.

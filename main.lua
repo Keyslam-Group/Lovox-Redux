@@ -37,7 +37,7 @@ function love.keypressed(key)
 
    if key == "a" then
       for i = 1, 16 do
-         myVoxelBatch:set(i, i * 64, 300)
+         myVoxelBatch:setTransformation(i, i * 64, 300)
       end
    end
 

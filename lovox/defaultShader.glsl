@@ -15,11 +15,12 @@ vec4 position(mat4 ortho, vec4 vertex) {
    mat4 transform = mat4(MatRow1, MatRow2, MatRow3, MatRow4);
    return ClipSpaceFromView * projection * view * transform * vertex;
 }
+
 #endif
 
 #ifdef PIXEL
 
-// Samples from an Array image. Discards alpha values.
+// Samples from an Image. Discards alpha values.
 vec4 effect(vec4 color, sampler2D img, vec2 texture_coords, vec2 screen_coords) {
    vec4 pixel = Texel(img, texture_coords);
 

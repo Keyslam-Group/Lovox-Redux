@@ -2,17 +2,18 @@ local PATH = (...):gsub('%.[^%.]+$', '')
 
 local Transform = require (PATH .. '.transform')
 
-local Camera = {}
+local Camera = {
+   defaultShader   = love.graphics.newShader(PATH:gsub('%.', '/').."/defaultShader.glsl"  ),
+   animationShader = love.graphics.newShader(PATH:gsub('%.', '/').."/animationShader.glsl"),
+}
 Camera.__index = Camera
-
-local defaultShader = love.graphics.newShader(PATH:gsub('%.', '/').."/shader.glsl")
 
 --- Generates a new Camera.
 -- @param w, h The dimension of the Camera. Defaults to window size
 -- @returns A new Camera object.
 function Camera.new(w, h)
    return setmetatable({
-      shader    = defaultShader,
+      shader    = Camera.defaultShader,
       color     = nil,
       depth     = nil,
       canvas    = nil,
@@ -67,7 +68,14 @@ end
 -- @param shader The shader to use. Defaults to the Lovox shader
 -- @returns self
 function Camera:setShader(shader)
-   self.shader = shader or defaultShader
+   if shader == "animation" then
+      self.shader = Camera.animationShader
+   elseif shader == "default" or shader == nil then
+      self.shader = Camera.defaultShader
+   else
+      self.shader = shader
+   end
+
    return sendCamera(self)
 end
 
