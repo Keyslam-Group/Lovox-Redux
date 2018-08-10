@@ -114,7 +114,7 @@ function VoxelBatch:flush()
 end
 
 function VoxelBatch:setTransformation(index, ...)
-   -- TODO Check if index is < nextFreeIndex
+   -- TODO: Check if index is < nextFreeIndex
    local instance = self.vertexBuffer[index - 1]
 
    instance:setTransformation(...)
@@ -124,7 +124,7 @@ function VoxelBatch:setTransformation(index, ...)
 end
 
 function VoxelBatch:setColor(index, r, g, b, a) --luacheck: ignore
-   -- TODO Check if index is < nextFreeIndex
+   -- TODO: Check if index is < nextFreeIndex
    local instance = self.vertexBuffer[index - 1]
 
    local cr, cg, cb, ca = love.graphics.getColor() --luacheck: ignore
@@ -139,13 +139,14 @@ end
 
 function VoxelBatch:setAnimationFrame(index, frame)
    if self.texture:getTextureType() == "array" then
-      if frame >= 1 and frame <= self.texture:getLayers() then
+      -- TODO: Check that layers actually range from 0 to getLayers() - 1 inclusive
+      if frame >= 0 and frame < self.texture:getLayers() then
          local instance = self.vertexBuffer[index - 1]
 
          instance.frame = math.floor(frame)
 
          self.isDirty = true
-      --else error
+      -- else error
       end
    end
 
@@ -153,7 +154,7 @@ function VoxelBatch:setAnimationFrame(index, frame)
 end
 
 function VoxelBatch:add(...)
-   -- TODO Check if the index is < voxelCount
+   -- TODO: Check if the index is < voxelCount
    local index = self.nextFreeIndex
 
    self.nextFreeIndex = index + 1
