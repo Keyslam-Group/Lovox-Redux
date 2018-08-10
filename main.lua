@@ -5,8 +5,8 @@ local Lovox = require("lovox")
 
 local img = love.graphics.newImage("boat/texture.png")
 
-local myVoxelBatch = Lovox.voxelBatch(img, 16, 256, "dynamic")
-local myCamera     = Lovox.camera()
+local myVoxelBatch = Lovox.newVoxelBatch(img, 16, 256, "dynamic")
+local myCamera     = Lovox.newCamera()
 
 for i = 1, 256 do
    myVoxelBatch:add(i * 64, 100)

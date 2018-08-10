@@ -18,7 +18,7 @@ function Camera.new(w, h)
       depth     = nil,
       canvas    = nil,
       rendering = false,
-      transform = Transform.newMatrix():reset(),
+      transform = Transform.new():reset(),
    }, Camera):resize(w, h)
 end
 

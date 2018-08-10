@@ -2,38 +2,46 @@ local Ffi = require("ffi")
 
 local Transform   = {}
 Transform.__index = Transform
+-- NOTE: Transform objects are (internally) matrices in COLUMN-MAJOR format.
 
--- Localize 'cos' and 'sin' for a bit more performance in VoxelBatch:updateVoxel
+-- Localize 'cos' and 'sin' for a bit more performance
 local cos = math.cos
 local sin = math.sin
 
--- Define a struct for our custom vertex format
+-- Define a struct for our custom matrix and instances
 Ffi.cdef[[
    typedef struct {
       float mat[16];
-   } fm_matrix;
+   } lovox_matrix;
 
    typedef struct {
       float mat[16];
       unsigned char r, g, b, a;
       float frame;
-   } fm_instance;
+   } lovox_instance;
 ]]
 
-Transform.newMatrix = Ffi.typeof("fm_matrix")
+--- Create a new Transform object.
+-- @returns Transform
+Transform.new = Ffi.typeof("lovox_matrix")
 
-local temp = Transform.newMatrix()
+-- This temporary variable is filled by the different methods
+local temp = Transform.new()
 
+--- Clones the Transform.
+-- @returns new A copy of the Transform
 function Transform:clone()
-   -- local out = Transform.newMatrix()
+   -- local out = Transform.new()
    -- for i=0, 15 do
-   --    out.mat[i] = self.mat[i] --Possible to Ffi.copy
+   --    out.mat[i] = self.mat[i]
    -- end
    -- return out
 
-   return Transform.newMatrix(self)
+   return Transform.new(self)
 end
 
+--- Get the internal transformation matrix stored by this Transform.
+-- @returns e1_1, e1_2, ..., e4_4 The 16 components of the Matrix, in ROW-MAJOR order (eROW_COLUMN)
 function Transform:getMatrix()
    local e = self.mat
 
@@ -43,8 +51,39 @@ function Transform:getMatrix()
           e[3], e[7], e[11], e[15]
 end
 
+--- Directly sets the Transform's internal 4x4 transformation matrix.
+-- @param layout Order of the matrix element arguments, "row" for ROW-MAJOR (default), or "column" for COLUMN-MAJOR
+-- @param e1_1, e1_2, ..., e4_4 The 16 components of the Matrix in the order specified with layout
+function Transform:setMatrix(layout, ...)
+   if type(layout) == "number" then
+      self:setMatrix(nil, ...)
+   end
+
+   local e = self.mat
+
+   if layout == "column" then
+      e[0],  e[1],  e[2],  e[3],
+      e[4],  e[5],  e[6],  e[7],
+      e[8],  e[9],  e[10], e[11],
+      e[12], e[13], e[14], e[15] = ...
+   elseif layout == "row" or layout == nil then
+      e[0], e[4], e[8],  e[12],
+      e[1], e[5], e[9],  e[13],
+      e[2], e[6], e[10], e[14],
+      e[3], e[7], e[11], e[15] = ...
+   else
+      error("Invalid layout, expected one of 'row' or 'column'", 2)
+   end
+
+   return self
+end
+
 local reuse = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 
+--- Fills a table with the components of the transformation matrix for this Transform.
+-- This table can then be sent to a Shader safely.
+-- @param tab The table to fill. Defaults to a reusable table (don't store this, it may change)
+-- @returns matrix The filled table
 function Transform:send(tab)
    local e, t = self.mat, tab or reuse
 
@@ -56,10 +95,11 @@ function Transform:send(tab)
    return t
 end
 
+--- Sets all the components of the Transform's transformation matrix to 0.
+-- @returns self
 function Transform:clear()
    local e = self.mat
 
-   --Possible to Ffi.fill
    e[0],  e[1],  e[2],  e[3]  = 0, 0, 0, 0
    e[4],  e[5],  e[6],  e[7]  = 0, 0, 0, 0
    e[8],  e[9],  e[10], e[11] = 0, 0, 0, 0
@@ -68,10 +108,12 @@ function Transform:clear()
    return self
 end
 
+--- Resets the Transform to an identity state.
+-- This erases previous transformations
+-- @returns self
 function Transform:reset()
    local e = self.mat
 
-   --Possible to Ffi.fill or Ffi.copy from a fixed identity matrix
    e[0],  e[1],  e[2],  e[3]  = 1, 0, 0, 0
    e[4],  e[5],  e[6],  e[7]  = 0, 1, 0, 0
    e[8],  e[9],  e[10], e[11] = 0, 0, 1, 0
@@ -80,48 +122,13 @@ function Transform:reset()
    return self
 end
 
-function Transform:setTranslation(x, y, z)
-   local e = self:reset().mat
-
-   e[12] = x or 0
-   e[13] = y or 0
-   e[14] = z or 0
-
-   return self
-end
-
-function Transform:setRotation(angle)
-   local c, s = cos(angle or 0), sin(angle or 0)
-
-   local e = self:reset().mat
-
-   e[0] =  c
-   e[4] = -s
-   e[1] =  s
-   e[5] =  c
-
-   return self
-end
-
-function Transform:setScale(sx, sy, sz)
-   local e = self:reset().mat
-
-   e[0]  = sx or 1
-   e[5]  = sy or e[0]
-   e[10] = sz or e[5]
-
-   return self
-end
-
-function Transform:setShear(kx, ky)
-   local e = self:reset().mat
-
-   e[1]  = kx or 0
-   e[4]  = ky or 0
-
-   return self
-end
-
+--- Resets the Transform to the specified transformation parameters.
+-- @param x, y, z Amount to translate on the X, Y and Z axis
+-- @param angle Rotation of the Transform in radians
+-- @param sx, sy, sz Scale factors on the X, Y and Z axis
+-- @param ox, oy, oz Origin offset in the X, Y and Z axis
+-- @param kx, ky Shearing/skew factors on the X and Y axis
+-- @returns self
 function Transform:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx, ky)
    local e = self:reset().mat
 
@@ -152,66 +159,144 @@ function Transform:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx,
    return self
 end
 
+--This functions sets a matrix to a translation matrix
+local function setTranslation(self, x, y, z)
+   local e = self:reset().mat
+
+   e[12] = x or 0
+   e[13] = y or 0
+   e[14] = z or 0
+
+   return self
+end
+
+--- Applies a translation to the Transform's coordinate system.
+-- @param x, y, z The ammount to translate on the X, Y and Z axis
+-- @returns self
 function Transform:translate(x, y, z)
-   temp:setTranslation(x, y, z)
+   setTranslation(temp, x, y, z)
    return self:apply(temp)
 end
 
+--This functions sets a matrix to a rotation matrix
+local function setRotation(self, angle)
+   local c, s = cos(angle or 0), sin(angle or 0)
+
+   local e = self:reset().mat
+
+   e[0] =  c
+   e[4] = -s
+   e[1] =  s
+   e[5] =  c
+
+   return self
+end
+
+--- Applies a rotation to the Transform's coordinate system.
+-- This rotation happens in the XY plane.
+-- @param angle Angle of the rotation applied
+-- @returns self
 function Transform:rotate(angle)
-   temp:setRotation(angle)
+   setRotation(temp, angle)
    return self:apply(temp)
 end
 
+--This functions sets a matrix to a scaling matrix
+local function setScale(self, sx, sy, sz)
+   local e = self:reset().mat
+
+   e[0]  = sx or 1
+   e[5]  = sy or e[0]
+   e[10] = sz or e[5]
+
+   return self
+end
+
+--- Scales the Transform's coordinate system.
+-- @param sx, sy, sz Relative scale factors along the X, Y and Z axis
+-- @returns self
 function Transform:scale(sx, sy, sz)
-   temp:setScale(sx, sy, sz)
+   setScale(temp, sx, sy, sz)
    return self:apply(temp)
 end
 
+--This functions sets a matrix to a shearing matrix
+local function setShear(self, kx, ky)
+   local e = self:reset().mat
+
+   e[1]  = kx or 0
+   e[4]  = ky or 0
+
+   return self
+end
+
+--- Applies a shear factor (skew) to the Transform's coordinate system.
+-- The shearing is applied on the XY plane
+-- @param kx, ky The shear factor along the X and Y axis
+-- @returns self
 function Transform:shear(kx, ky)
-   temp:setShear(kx, ky)
+   setShear(temp, kx, ky)
    return self:apply(temp)
 end
 
-function Transform:apply(o)
-   local tmp, a, b = temp.mat, self.mat, o.mat
+--- Applies the given other Transform object to this one.
+-- @param other The other Transform object to apply to this Transform.
+-- @returns self
+function Transform:apply(other)
+   local t, a = temp.mat, self.mat
 
-   tmp[0]  = a[0]  * b[0] + a[1]  * b[4] + a[2]  * b[8]  + a[3]  * b[12]
-   tmp[1]  = a[0]  * b[1] + a[1]  * b[5] + a[2]  * b[9]  + a[3]  * b[13]
-   tmp[2]  = a[0]  * b[2] + a[1]  * b[6] + a[2]  * b[10] + a[3]  * b[14]
-   tmp[3]  = a[0]  * b[3] + a[1]  * b[7] + a[2]  * b[11] + a[3]  * b[15]
-   tmp[4]  = a[4]  * b[0] + a[5]  * b[4] + a[6]  * b[8]  + a[7]  * b[12]
-   tmp[5]  = a[4]  * b[1] + a[5]  * b[5] + a[6]  * b[9]  + a[7]  * b[13]
-   tmp[6]  = a[4]  * b[2] + a[5]  * b[6] + a[6]  * b[10] + a[7]  * b[14]
-   tmp[7]  = a[4]  * b[3] + a[5]  * b[7] + a[6]  * b[11] + a[7]  * b[15]
-   tmp[8]  = a[8]  * b[0] + a[9]  * b[4] + a[10] * b[8]  + a[11] * b[12]
-   tmp[9]  = a[8]  * b[1] + a[9]  * b[5] + a[10] * b[9]  + a[11] * b[13]
-   tmp[10] = a[8]  * b[2] + a[9]  * b[6] + a[10] * b[10] + a[11] * b[14]
-   tmp[11] = a[8]  * b[3] + a[9]  * b[7] + a[10] * b[11] + a[11] * b[15]
-   tmp[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8]  + a[15] * b[12]
-   tmp[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9]  + a[15] * b[13]
-   tmp[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14]
-   tmp[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]
+   --Unpack the matrix (This makes this method compatible with LÖVE's Transforms)
+   local b0,b4,b8,b12,b1,b5,b9,b13,b2,b6,b10,b14,b3,b7,b11,b15 = other:getMatrix()
+
+   --Matrix multiplication code
+   t[0]  = a[0] * b0  + a[4] * b1  + a[8]  * b2  + a[12] * b3
+   t[4]  = a[0] * b4  + a[4] * b5  + a[8]  * b6  + a[12] * b7
+   t[8]  = a[0] * b8  + a[4] * b9  + a[8]  * b10 + a[12] * b11
+   t[12] = a[0] * b12 + a[4] * b13 + a[8]  * b14 + a[12] * b15
+
+   t[1]  = a[1] * b0  + a[5] * b1  + a[9]  * b2  + a[13] * b3
+   t[5]  = a[1] * b4  + a[5] * b5  + a[9]  * b6  + a[13] * b7
+   t[9]  = a[1] * b8  + a[5] * b9  + a[9]  * b10 + a[13] * b11
+   t[13] = a[1] * b12 + a[5] * b13 + a[9]  * b14 + a[13] * b15
+
+   t[2]  = a[2] * b0  + a[6] * b1  + a[10] * b2  + a[15] * b3
+   t[6]  = a[2] * b4  + a[6] * b5  + a[10] * b6  + a[15] * b7
+   t[10] = a[2] * b8  + a[6] * b9  + a[10] * b10 + a[15] * b11
+   t[14] = a[2] * b12 + a[6] * b13 + a[10] * b14 + a[15] * b15
+
+   t[3]  = a[3] * b0  + a[7] * b1  + a[11] * b2  + a[15] * b3
+   t[7]  = a[3] * b4  + a[7] * b5  + a[11] * b6  + a[15] * b7
+   t[11] = a[3] * b8  + a[7] * b9  + a[11] * b10 + a[15] * b11
+   t[15] = a[3] * b12 + a[7] * b13 + a[11] * b14 + a[15] * b15
 
    for i = 0, 15 do
-      b[i] = tmp[i] --Possible to Ffi.copy
+      a[i] = t[i] --Fill self with the temporary variable
    end
 
    return self
 end
 
 do
-   local inst = Ffi.typeof("fm_instance")
-   local mat  = Ffi.typeof("fm_matrix")
+   local mat  = Ffi.typeof("lovox_matrix")
+   local inst = Ffi.typeof("lovox_instance")
 
+   -- Size of lovox_matrix and lovox_instance ctypes (in bytes)
    Transform.matrixSize   = Ffi.sizeof(mat)
    Transform.instanceSize = Ffi.sizeof(inst)
 
+   --- Cast a pointer (from a Data object) to an "array" of lovox_instances
+   -- @param pointer The pointer to cast
+   -- @return cdata The cdata object corresponding to the casted array
    function Transform.castInstances(pointer)
-      return Ffi.cast("fm_instance*", pointer)
+      return Ffi.cast("lovox_instance*", pointer)
    end
 
+   -- Apply the metatypes to lovox_instance/matrix objects
+   -- Equivalent to setmetatable but for ctypes
    Ffi.metatype(mat,  Transform)
    Ffi.metatype(inst, Transform)
 end
 
-return Transform
+return setmetatable(Transform, {
+   __call = function(_, ...) return Transform.new(...) end,
+})

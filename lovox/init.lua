@@ -1,9 +1,9 @@
 local PATH = (...):gsub('%.init$', '')
 
 local Lovox = {
-   voxelBatch = require(PATH..".voxelBatch"),
-   camera     = require(PATH..".camera"),
-   transform  = require(PATH..".transform"),
+   newVoxelBatch = require(PATH..".voxelBatch"),
+   newCamera     = require(PATH..".camera"    ),
+   newTransform  = require(PATH..".transform" ),
 }
 
 local notSupported = false
