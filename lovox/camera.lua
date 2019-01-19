@@ -12,7 +12,7 @@ Camera.__index = Camera
 -- @param w, h The dimension of the Camera. Defaults to window size
 -- @returns A new Camera object.
 function Camera.new(w, h)
-   local transform = Transform.new():reset()
+   local transform = Transform():reset()
    return setmetatable({
       shader    = Camera.basicShader,
       color     = nil,

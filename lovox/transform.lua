@@ -30,6 +30,8 @@ local new = Ffi.typeof("lovox_matrix")
 -- This temporary variable is filled by the different methods
 local temp = new()
 
+Transform.new = new
+
 --- Clones the Transform.
 -- @returns new A copy of the Transform
 function Transform:clone()
@@ -365,4 +367,6 @@ do
    -- From this point on changing Transform won't have any effect
 end
 
-return new
+return setmetatable(Transform, {
+   __call = function(_, ...) return Transform.new(...) end,
+})
