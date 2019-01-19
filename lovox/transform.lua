@@ -2,7 +2,9 @@ local Ffi = require("ffi")
 
 local Transform   = {}
 Transform.__index = Transform
--- NOTE: Transform objects are (internally) matrices in COLUMN-MAJOR format.
+
+-- NOTE: Once Ffi.metatype is called (at the end of this file) Transform can't be changed
+-- NOTE: Transform objects are (internally) arrays of floats, representing matrices in COLUMN-MAJOR format.
 
 -- Localize 'cos' and 'sin' for a bit more performance
 local cos = math.cos
@@ -23,21 +25,21 @@ Ffi.cdef[[
 
 --- Create a new Transform object.
 -- @returns Transform
-Transform.new = Ffi.typeof("lovox_matrix")
+local new = Ffi.typeof("lovox_matrix")
 
 -- This temporary variable is filled by the different methods
-local temp = Transform.new()
+local temp = new()
 
 --- Clones the Transform.
 -- @returns new A copy of the Transform
 function Transform:clone()
-   -- local out = Transform.new()
+   -- local out = new()
    -- for i=0, 15 do
    --    out.mat[i] = self.mat[i]
    -- end
    -- return out
 
-   return Transform.new(self)
+   return new(self)
 end
 
 --- Get the internal transformation matrix stored by this Transform.
@@ -138,7 +140,7 @@ function Transform:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx,
    sy         = sy or sx
    sz         = sz or sy
 
-   local s, c = cos(angle or 0), sin(angle or 0)
+   local s, c = sin(angle or 0), cos(angle or 0)
 
    -- matrix multiplication carried out on paper:
    -- |1 0 0 x| |c -s 0 0| |sx  0 0 0| | 1 ky 0 0| |1 0 0 -ox|
@@ -259,10 +261,10 @@ function Transform:apply(other)
    t[9]  = a[1] * b8  + a[5] * b9  + a[9]  * b10 + a[13] * b11
    t[13] = a[1] * b12 + a[5] * b13 + a[9]  * b14 + a[13] * b15
 
-   t[2]  = a[2] * b0  + a[6] * b1  + a[10] * b2  + a[15] * b3
-   t[6]  = a[2] * b4  + a[6] * b5  + a[10] * b6  + a[15] * b7
-   t[10] = a[2] * b8  + a[6] * b9  + a[10] * b10 + a[15] * b11
-   t[14] = a[2] * b12 + a[6] * b13 + a[10] * b14 + a[15] * b15
+   t[2]  = a[2] * b0  + a[6] * b1  + a[10] * b2  + a[14] * b3
+   t[6]  = a[2] * b4  + a[6] * b5  + a[10] * b6  + a[14] * b7
+   t[10] = a[2] * b8  + a[6] * b9  + a[10] * b10 + a[14] * b11
+   t[14] = a[2] * b12 + a[6] * b13 + a[10] * b14 + a[14] * b15
 
    t[3]  = a[3] * b0  + a[7] * b1  + a[11] * b2  + a[15] * b3
    t[7]  = a[3] * b4  + a[7] * b5  + a[11] * b6  + a[15] * b7
@@ -276,6 +278,70 @@ function Transform:apply(other)
    return self
 end
 
+--- Calculates the inverse Transform to this one.
+-- @param output Optional Transform to fill with the inverse Transform.
+-- @returns inverse The inverse Transform (output, if provided)
+function Transform:inverse(output)
+   output = output or new()
+   local t, e = output.mat, self.mat
+
+   --Inverse matrix code
+   t[0]  =  e[5]  * e[10] * e[15] - e[5]  * e[11] * e[14] - e[9]  * e[6]  * e[15] +
+            e[9]  * e[7]  * e[14] + e[13] * e[6]  * e[11] - e[13] * e[7]  * e[10]
+   t[4]  = -e[4]  * e[10] * e[15] + e[4]  * e[11] * e[14] + e[8]  * e[6]  * e[15] -
+            e[8]  * e[7]  * e[14] - e[12] * e[6]  * e[11] + e[12] * e[7]  * e[10]
+   t[8]  =  e[4]  * e[9]  * e[15] - e[4]  * e[11] * e[13] - e[8]  * e[5]  * e[15] +
+            e[8]  * e[7]  * e[13] + e[12] * e[5]  * e[11] - e[12] * e[7]  * e[9]
+   t[12] = -e[4]  * e[9]  * e[14] + e[4]  * e[10] * e[13] + e[8]  * e[5]  * e[14] -
+            e[8]  * e[6]  * e[13] - e[12] * e[5]  * e[10] + e[12] * e[6]  * e[9]
+   t[1]  = -e[1]  * e[10] * e[15] + e[1]  * e[11] * e[14] + e[9]  * e[2]  * e[15] -
+            e[9]  * e[3]  * e[14] - e[13] * e[2]  * e[11] + e[13] * e[3]  * e[10]
+   t[5]  =  e[0]  * e[10] * e[15] - e[0]  * e[11] * e[14] - e[8]  * e[2]  * e[15] +
+            e[8]  * e[3]  * e[14] + e[12] * e[2]  * e[11] - e[12] * e[3]  * e[10]
+   t[9]  = -e[0]  * e[9]  * e[15] + e[0]  * e[11] * e[13] + e[8]  * e[1]  * e[15] -
+            e[8]  * e[3]  * e[13] - e[12] * e[1]  * e[11] + e[12] * e[3]  * e[9]
+   t[13] =  e[0]  * e[9]  * e[14] - e[0]  * e[10] * e[13] - e[8]  * e[1]  * e[14] +
+            e[8]  * e[2]  * e[13] + e[12] * e[1]  * e[10] - e[12] * e[2]  * e[9]
+   t[2]  =  e[1]  * e[6]  * e[15] - e[1]  * e[7]  * e[14] - e[5]  * e[2]  * e[15] +
+            e[5]  * e[3]  * e[14] + e[13] * e[2]  * e[7]  - e[13] * e[3]  * e[6]
+   t[6]  = -e[0]  * e[6]  * e[15] + e[0]  * e[7]  * e[14] + e[4]  * e[2]  * e[15] -
+            e[4]  * e[3]  * e[14] - e[12] * e[2]  * e[7]  + e[12] * e[3]  * e[6]
+   t[10] =  e[0]  * e[5]  * e[15] - e[0]  * e[7]  * e[13] - e[4]  * e[1]  * e[15] +
+            e[4]  * e[3]  * e[13] + e[12] * e[1]  * e[7]  - e[12] * e[3]  * e[5]
+   t[14] = -e[0]  * e[5]  * e[14] + e[0]  * e[6]  * e[13] + e[4]  * e[1]  * e[14] -
+            e[4]  * e[2]  * e[13] - e[12] * e[1]  * e[6]  + e[12] * e[2]  * e[5]
+   t[3]  = -e[1]  * e[6]  * e[11] + e[1]  * e[7]  * e[10] + e[5]  * e[2]  * e[11] -
+            e[5]  * e[3]  * e[10] - e[9]  * e[2]  * e[7]  + e[9]  * e[3]  * e[6]
+   t[7]  =  e[0]  * e[6]  * e[11] - e[0]  * e[7]  * e[10] - e[4]  * e[2]  * e[11] +
+            e[4]  * e[3]  * e[10] + e[8]  * e[2]  * e[7]  - e[8]  * e[3]  * e[6]
+   t[11] = -e[0]  * e[5]  * e[11] + e[0]  * e[7]  * e[9]  + e[4]  * e[1]  * e[11] -
+            e[4]  * e[3]  * e[9]  - e[8]  * e[1]  * e[7]  + e[8]  * e[3]  * e[5]
+   t[15] =  e[0]  * e[5]  * e[10] - e[0]  * e[6]  * e[9]  - e[4]  * e[1]  * e[10] +
+            e[4]  * e[2]  * e[9]  + e[8]  * e[1]  * e[6]  - e[8]  * e[2]  * e[5]
+
+   local det = e[0] * t[0] + e[1] * t[4] + e[2] * t[8] + e[3] * t[12]
+   local invdet = 1/det
+
+   for i=0, 15 do
+      t[i] = t[i] * invdet
+   end
+
+   return output
+end
+
+--- Applies the Transform to an specific point.
+-- @param x, y, z The X, Y, Z coordinate of the point to transform.
+-- @returns x, y, z The transformed point.
+function Transform:transformPoint(x, y, z)
+   local e = self.mat
+
+   local nx = (e[0] * x) + (e[4] * y) + (e[8]  * z) + e[12]
+   local ny = (e[1] * x) + (e[5] * y) + (e[9]  * z) + e[13]
+   local nz = (e[2] * x) + (e[6] * y) + (e[10] * z) + e[14]
+
+   return nx, ny, nz
+end
+
 do
    local mat  = Ffi.typeof("lovox_matrix")
    local inst = Ffi.typeof("lovox_instance")
@@ -286,7 +352,7 @@ do
 
    --- Cast a pointer (from a Data object) to an "array" of lovox_instances
    -- @param pointer The pointer to cast
-   -- @return cdata The cdata object corresponding to the casted array
+   -- @returns cdata The cdata object corresponding to the casted array
    function Transform.castInstances(pointer)
       return Ffi.cast("lovox_instance*", pointer)
    end
@@ -295,8 +361,8 @@ do
    -- Equivalent to setmetatable but for ctypes
    Ffi.metatype(mat,  Transform)
    Ffi.metatype(inst, Transform)
+
+   -- From this point on changing Transform won't have any effect
 end
 
-return setmetatable(Transform, {
-   __call = function(_, ...) return Transform.new(...) end,
-})
+return new
