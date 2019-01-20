@@ -1,9 +1,9 @@
-local Ffi = require("ffi")
+local ffi = require("ffi")
 
 local Transform   = {}
 Transform.__index = Transform
 
--- NOTE: Once Ffi.metatype is called (at the end of this file) Transform can't be changed
+-- NOTE: Once ffi.metatype is called (at the end of this file) Transform can't be changed
 -- NOTE: Transform objects are (internally) arrays of floats, representing matrices in COLUMN-MAJOR format.
 
 -- Localize 'cos' and 'sin' for a bit more performance
@@ -11,7 +11,7 @@ local cos = math.cos
 local sin = math.sin
 
 -- Define a struct for our custom matrix and instances
-Ffi.cdef[[
+ffi.cdef[[
    typedef struct {
       float mat[16];
    } lovox_matrix;
@@ -25,7 +25,7 @@ Ffi.cdef[[
 
 --- Create a new Transform object.
 -- @returns Transform
-local new = Ffi.typeof("lovox_matrix")
+local new = ffi.typeof("lovox_matrix")
 
 -- This temporary variable is filled by the different methods
 local temp = new()
@@ -163,7 +163,7 @@ function Transform:setTransformation(x, y, z, angle, sx, sy, sz, ox, oy, oz, kx,
    return self
 end
 
---This functions sets a matrix to a translation matrix
+-- This functions sets a matrix to a translation matrix
 local function setTranslation(self, x, y, z)
    local e = self:reset().mat
 
@@ -182,7 +182,7 @@ function Transform:translate(x, y, z)
    return self:apply(temp)
 end
 
---This functions sets a matrix to a rotation matrix
+-- This functions sets a matrix to a rotation matrix
 local function setRotation(self, angle)
    local c, s = cos(angle or 0), sin(angle or 0)
 
@@ -205,7 +205,7 @@ function Transform:rotate(angle)
    return self:apply(temp)
 end
 
---This functions sets a matrix to a scaling matrix
+-- This functions sets a matrix to a scaling matrix
 local function setScale(self, sx, sy, sz)
    local e = self:reset().mat
 
@@ -224,7 +224,7 @@ function Transform:scale(sx, sy, sz)
    return self:apply(temp)
 end
 
---This functions sets a matrix to a shearing matrix
+-- This functions sets a matrix to a shearing matrix
 local function setShear(self, kx, ky)
    local e = self:reset().mat
 
@@ -249,10 +249,10 @@ end
 function Transform:apply(other)
    local t, a = temp.mat, self.mat
 
-   --Unpack the matrix (This makes this method compatible with LÖVE's Transforms)
+   -- Unpack the matrix (This makes this method compatible with LÖVE's Transforms)
    local b0,b4,b8,b12,b1,b5,b9,b13,b2,b6,b10,b14,b3,b7,b11,b15 = other:getMatrix()
 
-   --Matrix multiplication code
+   -- Matrix multiplication code
    t[0]  = a[0] * b0  + a[4] * b1  + a[8]  * b2  + a[12] * b3
    t[4]  = a[0] * b4  + a[4] * b5  + a[8]  * b6  + a[12] * b7
    t[8]  = a[0] * b8  + a[4] * b9  + a[8]  * b10 + a[12] * b11
@@ -274,7 +274,7 @@ function Transform:apply(other)
    t[15] = a[3] * b12 + a[7] * b13 + a[11] * b14 + a[15] * b15
 
    for i = 0, 15 do
-      a[i] = t[i] --Fill self with the temporary variable
+      a[i] = t[i] -- Fill self with the temporary variable
    end
 
    return self
@@ -287,7 +287,7 @@ function Transform:inverse(output)
    output = output or new()
    local t, e = output.mat, self.mat
 
-   --Inverse matrix code
+   -- Inverse matrix code
    t[0]  =  e[5]  * e[10] * e[15] - e[5]  * e[11] * e[14] - e[9]  * e[6]  * e[15] +
             e[9]  * e[7]  * e[14] + e[13] * e[6]  * e[11] - e[13] * e[7]  * e[10]
    t[4]  = -e[4]  * e[10] * e[15] + e[4]  * e[11] * e[14] + e[8]  * e[6]  * e[15] -
@@ -345,24 +345,24 @@ function Transform:transformPoint(x, y, z)
 end
 
 do
-   local mat  = Ffi.typeof("lovox_matrix")
-   local inst = Ffi.typeof("lovox_instance")
+   local mat  = ffi.typeof("lovox_matrix")
+   local inst = ffi.typeof("lovox_instance")
 
    -- Size of lovox_matrix and lovox_instance ctypes (in bytes)
-   Transform.matrixSize   = Ffi.sizeof(mat)
-   Transform.instanceSize = Ffi.sizeof(inst)
+   Transform.matrixSize   = ffi.sizeof(mat)
+   Transform.instanceSize = ffi.sizeof(inst)
 
    --- Cast a pointer (from a Data object) to an "array" of lovox_instances
    -- @param pointer The pointer to cast
    -- @returns cdata The cdata object corresponding to the casted array
    function Transform.castInstances(pointer)
-      return Ffi.cast("lovox_instance*", pointer)
+      return ffi.cast("lovox_instance*", pointer)
    end
 
    -- Apply the metatypes to lovox_instance/matrix objects
    -- Equivalent to setmetatable but for ctypes
-   Ffi.metatype(mat,  Transform)
-   Ffi.metatype(inst, Transform)
+   ffi.metatype(mat,  Transform)
+   ffi.metatype(inst, Transform)
 
    -- From this point on changing Transform won't have any effect
 end

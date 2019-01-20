@@ -1,11 +1,15 @@
 local PATH = (...):gsub('%.[^%.]+$', '')
 
-local Ffi       = require("ffi")
+local ffi       = require("ffi")
 local Mesh      = require(PATH..".mesh")
 
--- Define the module, as well as the vertex format
+-- Define the module
 local VoxelBatch = {}
-Mesh.__index = VoxelBatch
+VoxelBatch.__index = VoxelBatch
+
+local ERR_FRAMETYPE = "Frame needs to be a number, was a %s"
+local ERR_FRAME     = "The ArrayImage frames range from 0 to %d, frame out of bounds: %d"
+local ERR_TEXTURE   = "The texture used by this VoxelBatch is not an ArrayImage"
 
 local function checkReleased (self)
    if not self.mesh or not self.modelAttributes then
@@ -36,7 +40,7 @@ function VoxelBatch.new(texture, layers, voxelCount, usage)
    local vertices = Mesh.newVertices(texture:getWidth(), texture:getHeight() / layers, layers)
    local modelAttributes, instanceData, vertexBuffer = Mesh.newModelAttributes(voxelCount, usage)
 
-   --The model mesh, is a static mesh which has the different layers and the associated texture
+   -- The model mesh, is a static mesh which has the different layers and the associated texture
    local mesh = Mesh.newMesh(vertices, texture, layers, modelAttributes)
 
    return setmetatable({
@@ -50,7 +54,7 @@ function VoxelBatch.new(texture, layers, voxelCount, usage)
 
       currentIndex = 0,
       isDirty      = false,
-   }, Mesh)
+   }, VoxelBatch)
 end
 
 --- Applies updated voxels to the mesh.
@@ -81,25 +85,21 @@ end
 -- @param index The index of the instance
 -- @param r, g, b The color components to use. Defaults to love.graphics.getColor()
 -- @returns self
-function VoxelBatch:setColor(index, r, g, b, a) --luacheck: ignore
+function VoxelBatch:setColor(index, r, g, b, a) -- luacheck: ignore
    checkReleased(self)
    checkIndex(self, index)
 
    local instance = self.vertexBuffer[index - 1]
 
-   local cr, cg, cb, ca = love.graphics.getColor() --luacheck: ignore
+   local cr, cg, cb, ca = love.graphics.getColor() -- luacheck: ignore
    instance.r = (r or cr) * 255
    instance.g = (g or cg) * 255
    instance.b = (b or cb) * 255
-   instance.a = 255 --(a or ca) * 255
+   instance.a = 255 -- (a or ca) * 255
 
    self.isDirty = true
    return self
 end
-
-local ERR_FRAMETYPE = "Frame needs to be a number, was a %s"
-local ERR_FRAME     = "The ArrayImage frames range from 0 to %d, frame out of bounds: %d"
-local ERR_TEXTURE   = "The texture used by this VoxelBatch is not an ArrayImage"
 
 --- Set the frame of an instance in the VoxelBatch.
 -- NOTE: The texture of this VoxelBatch needs to be an ArrayImage for this method to work.
@@ -139,6 +139,8 @@ end
 -- @return index The index of the added instance
 function VoxelBatch:add(...)
    checkReleased(self)
+
+   -- If buffer size (voxelCount) is exceeded, return 0
    if self.currentIndex == self.voxelCount then
       return 0
    end
@@ -157,7 +159,7 @@ end
 -- @returns self
 function VoxelBatch:clear()
    checkReleased(self)
-   Ffi.fill(self.instanceData:getPointer(), self.instanceData:getSize())
+   ffi.fill(self.instanceData:getPointer(), self.instanceData:getSize())
 
    self.currentIndex = 0
    self.isDirty      = true
@@ -211,36 +213,43 @@ function VoxelBatch:draw()
       self:flush()
    end
 
-   love.graphics.drawInstanced(self.mesh, self.currentIndex) --luacheck: ignore
+   love.graphics.drawInstanced(self.mesh, self.currentIndex)
 
    return self
 end
 
 function VoxelBatch:release()
    if not self.mesh then
-      return false
+      return false -- Already released
    end
 
+   -- Reset all values to their default
    self.voxelCount = 0
    self.currentIndex = 0
    self.isDirty = false
 
-   Ffi.gc(self.vertexBuffer, nil)
+   -- Let us handle the collection of vertexBuffer
+   ffi.gc(self.vertexBuffer, nil)
    self.vertexBuffer = nil
 
+   -- Release the instanceData ByteData for the VoxelBatch
    self.instanceData:release()
    self.instanceData = nil
 
+   -- Release the modelAttributes Mesh for the VoxelBatch
    self.modelAttributes:release()
    self.modelAttributes = nil
 
+   -- Release the model Mesh for the VoxelBatch
    self.mesh:release()
    self.mesh = nil
+
+   -- Release the reference to the texture used by the VoxelBatch
    self.texture = nil
 
    return true
 end
 
 return setmetatable(VoxelBatch, {
-   __call = function (self, ...) return VoxelBatch.new(...)
+   __call = function (_, ...) return VoxelBatch.new(...) end
 })

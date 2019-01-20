@@ -186,7 +186,7 @@ function Camera:renderTo(func, ...)
    self.rendering = true
    sendCamera(self)
 
-   func(...) --Should probably pcall or xpcall
+   func(...) -- Should probably pcall or xpcall
 
    love.graphics.setDepthMode() --luacheck: ignore
    love.graphics.setCanvas()

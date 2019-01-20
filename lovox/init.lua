@@ -18,7 +18,7 @@ do
 
    local status = jit.status()
    if not status then
-      notSupported = "FFI is not enabled"
+      notSupported = "ffi is not enabled"
    end
 end
 
