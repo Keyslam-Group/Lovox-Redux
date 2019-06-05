@@ -1,9 +1,9 @@
 local PATH = (...):gsub('%.init$', '')
 
 local Lovox = {
-   newVoxelBatch = require(PATH..".voxelBatch"),
-   newCamera     = require(PATH..".camera"    ),
-   newTransform  = require(PATH..".transform" ),
+   newCamera     = require(PATH..".camera"    ).new,
+   newTransform  = require(PATH..".transform" ).new,
+   newVoxelBatch = require(PATH..".voxelBatch").new,
 }
 
 local notSupported = false
@@ -18,7 +18,7 @@ do
 
    local status = jit.status()
    if not status then
-      notSupported = "FFI is not enabled"
+      notSupported = "ffi is not enabled"
    end
 end
 

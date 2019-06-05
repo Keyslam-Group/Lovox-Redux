@@ -1,103 +1,47 @@
 local PATH = (...):gsub('%.[^%.]+$', '')
 
-local Ffi       = require("ffi")
-local Transform = require(PATH..".transform")
+local ffi       = require("ffi")
+local Mesh      = require(PATH..".mesh")
 
--- Define the module, as well as the vertex format
+-- Define the module
 local VoxelBatch = {}
 VoxelBatch.__index = VoxelBatch
 
-local vertexFormat = {
-   {"VertexPosition", "float", 3},
-   {"VertexTexCoord", "float", 2},
-}
+local ERR_FRAMETYPE = "Frame needs to be a number, was a %s"
+local ERR_FRAME     = "The ArrayImage frames range from 0 to %d, frame out of bounds: %d"
+local ERR_TEXTURE   = "The texture used by this VoxelBatch is not an ArrayImage"
 
-local instanceFormat = {
-   {"MatRow1", "float", 4},
-   {"MatRow2", "float", 4},
-   {"MatRow3", "float", 4},
-   {"MatRow4", "float", 4},
-
-   {"VertexColor",    "byte",  4},
-   {"AnimationFrame", "float", 1},
-}
-
-local function newModelAttributes(voxelCount, usage)
-   local memoryUsage = voxelCount * Transform.instanceSize
-
-   local instanceData    = love.data.newByteData(memoryUsage) --luacheck: ignore
-   local vertexBuffer    = Transform.castInstances(instanceData:getPointer())
-
-   --The attribute mesh has only the per-instance attributes of the models
-   local modelAttributes = love.graphics.newMesh(instanceFormat, instanceData, "points", usage)
-
-   return modelAttributes, instanceData, vertexBuffer
+local function checkReleased (self)
+   if not self.mesh or not self.modelAttributes then
+      error("This VoxelBatch has already been released and can't be used anymore", 3)
+   end
 end
 
-local function newVertices(width, height, layers)
-   local uvStep = 1 / layers
-
-   local vertices = {}
-   local start_v, end_v = 0, 1
-
-   --First layer is bottom and the last is top
-   for layer = 0, layers - 1 do
-      local start_u, end_u = layer * uvStep, (layer + 1) * uvStep
-      local o = (layer * 4)
-
-      vertices[o+1] = {-width/2, -height/2, layer, start_u, start_v} -- top-left
-      vertices[o+2] = { width/2, -height/2, layer, end_u,   start_v} -- top-right
-      vertices[o+3] = {-width/2,  height/2, layer, start_u, end_v  } -- bottom-left
-      vertices[o+4] = { width/2,  height/2, layer, end_u,   end_v  } -- bottom-right
+local function checkIndex (self, index)
+   local a = tonumber(index)
+   if type(a) ~= "number" then
+      error("Index needs to be a number, was a "..type(index), 3)
    end
 
-   return vertices
-end
-
-local function newVertexMap(layers)
-   local vertexMap = {}
-
-   for i = 0, layers - 1 do
-      local v, o = i * 6, i * 4
-
-      -- 1 --- 2 For each layer there are two triangles
-      -- |    /| Top-left is composed of vertices 1, 2 and 3
-      -- |  /  | Bottom-right is composed of 4, 3, 2
-      -- |/    | Both have clockwise winding
-      -- 3 --- 4 And are pointing up in the Z axis
-
-      vertexMap[v+1] = o + 1
-      vertexMap[v+2] = o + 2
-      vertexMap[v+3] = o + 3
-      vertexMap[v+4] = o + 4
-      vertexMap[v+5] = o + 3
-      vertexMap[v+6] = o + 2
+   a = math.floor(a)
+   if a > self.currentIndex then
+      error("The provided index hasn't been added to the batch yet", 2)
    end
 
-   return vertexMap
+   return a
 end
 
---- Creates a new mesh for voxels.
+--- Creates a new mesh batch for voxels.
 -- @param width, height, layer The dimensions of the source texture.
 -- @param voxelCount The amount of voxels the mesh can hold.
 -- @param usage How the mesh is supposed to be used (stream, dynamic, static).
 -- @returns A new VoxelBatch object.
 function VoxelBatch.new(texture, layers, voxelCount, usage)
-   local vertices = newVertices(texture:getWidth() / layers, texture:getHeight(), layers)
-   local modelAttributes, instanceData, vertexBuffer = newModelAttributes(voxelCount, usage)
+   local vertices = Mesh.newVertices(texture:getWidth(), texture:getHeight() / layers, layers)
+   local modelAttributes, instanceData, vertexBuffer = Mesh.newModelAttributes(voxelCount, usage)
 
-   --The model mesh, is a static mesh which has the different layers and the associated texture
-   local mesh = love.graphics.newMesh(vertexFormat, vertices, "triangles", "static")
-   mesh:setVertexMap(newVertexMap(layers))
-   mesh:setTexture(texture)
-
-   mesh:attachAttribute("MatRow1", modelAttributes, "perinstance")
-   mesh:attachAttribute("MatRow2", modelAttributes, "perinstance")
-   mesh:attachAttribute("MatRow3", modelAttributes, "perinstance")
-   mesh:attachAttribute("MatRow4", modelAttributes, "perinstance")
-
-   mesh:attachAttribute("VertexColor",    modelAttributes, "perinstance")
-   mesh:attachAttribute("AnimationFrame", modelAttributes, "perinstance")
+   -- The model mesh, is a static mesh which has the different layers and the associated texture
+   local mesh = Mesh.newMesh(vertices, texture, layers, modelAttributes)
 
    return setmetatable({
       texture    = texture,
@@ -126,7 +70,9 @@ end
 -- @param
 -- @returns self
 function VoxelBatch:setTransformation(index, ...)
-   -- TODO: Check if index is < currentIndex
+   checkReleased(self)
+   checkIndex(self, index)
+
    local instance = self.vertexBuffer[index - 1]
 
    instance:setTransformation(...)
@@ -139,37 +85,49 @@ end
 -- @param index The index of the instance
 -- @param r, g, b The color components to use. Defaults to love.graphics.getColor()
 -- @returns self
-function VoxelBatch:setColor(index, r, g, b, a) --luacheck: ignore
-   -- TODO: Check if index is < currentIndex
+function VoxelBatch:setColor(index, r, g, b, a) -- luacheck: ignore
+   checkReleased(self)
+   checkIndex(self, index)
+
    local instance = self.vertexBuffer[index - 1]
 
-   local cr, cg, cb, ca = love.graphics.getColor() --luacheck: ignore
+   local cr, cg, cb, ca = love.graphics.getColor() -- luacheck: ignore
    instance.r = (r or cr) * 255
    instance.g = (g or cg) * 255
    instance.b = (b or cb) * 255
-   instance.a = 255 --(a or ca) * 255
+   instance.a = 255 -- (a or ca) * 255
 
    self.isDirty = true
    return self
 end
 
---- Set the animation frame of an instance in the VoxelBatch.
--- Note: The texture of this VoxelBatch needs to be an ArrayImage for this method to work.
+--- Set the frame of an instance in the VoxelBatch.
+-- NOTE: The texture of this VoxelBatch needs to be an ArrayImage for this method to work.
 -- @param index The index of the instance
--- @param frame The frame of animation to use (0-based)
+-- @param frame The frame of the ArrayImage to use (0-based)
 -- @returns self
-function VoxelBatch:setAnimationFrame(index, frame)
-   -- TODO: Check if index is < currentIndex
+function VoxelBatch:setFrame(index, frame)
+   checkReleased(self)
+   checkIndex(self, index)
+
    if self.texture:getTextureType() == "array" then
-      -- TODO: Check that layers actually range from 0 to getLayers() - 1 inclusive
-      if frame >= 0 and frame < self.texture:getLayers() then
+      local f = tonumber(frame)
+      if type(f) ~= "number" then
+         error(ERR_FRAMETYPE:format(type(frame)), 2)
+      end
+
+      f = math.floor(f)
+      if f >= 0 and f < self.texture:getLayerCount() then
          local instance = self.vertexBuffer[index - 1]
 
-         instance.frame = math.floor(frame)
+         instance.frame = math.floor(f)
 
          self.isDirty = true
-      -- else error
+      else
+         error(ERR_FRAME:format(self.texture:getLayerCount() - 1, f), 2)
       end
+   else
+      error(ERR_TEXTURE, 2)
    end
 
    return self
@@ -180,7 +138,13 @@ end
 -- @param
 -- @return index The index of the added instance
 function VoxelBatch:add(...)
-   -- TODO: Check if the index is < voxelCount
+   checkReleased(self)
+
+   -- If buffer size (voxelCount) is exceeded, return 0
+   if self.currentIndex == self.voxelCount then
+      return 0
+   end
+
    local index = self.currentIndex + 1
 
    self.currentIndex = index
@@ -194,7 +158,8 @@ end
 -- After this drawing the VoxelBatch will draw nothing, and getCount() will be 0
 -- @returns self
 function VoxelBatch:clear()
-   Ffi.fill(self.instanceData:getPointer(), self.instanceData:getSize())
+   checkReleased(self)
+   ffi.fill(self.instanceData:getPointer(), self.instanceData:getSize())
 
    self.currentIndex = 0
    self.isDirty      = true
@@ -205,24 +170,28 @@ end
 --- Gets the number of instances currently active in this VoxelBatch
 -- @returns count Active instances
 function VoxelBatch:getCount()
+   checkReleased(self)
    return self.currentIndex
 end
 
 --- Get the number of instances this VoxelBatch can hold
 -- @returns size Maximum number of instances
 function VoxelBatch:getBufferSize()
+   checkReleased(self)
    return self.voxelCount
 end
 
 --- Attach an attribute to the VoxelBatch mesh
 -- @returns self
 function VoxelBatch:attachAttribute(...)
+   checkReleased(self)
    self.mesh:attachAttribute(...)
 end
 
 --- Get the Texture associated with this VoxelBatch
 -- @returns texture The texture bind to the VoxelBatch's mesh
 function VoxelBatch:getTexture()
+   checkReleased(self)
    return self.texture
 end
 
@@ -238,15 +207,49 @@ end
 --- Draws the VoxelBatch.
 -- @returns self
 function VoxelBatch:draw()
+   checkReleased(self)
+
    if self.isDirty then
       self:flush()
    end
 
-   love.graphics.drawInstanced(self.mesh, self.currentIndex) --luacheck: ignore
+   love.graphics.drawInstanced(self.mesh, self.currentIndex)
 
    return self
 end
 
+function VoxelBatch:release()
+   if not self.mesh then
+      return false -- Already released
+   end
+
+   -- Reset all values to their default
+   self.voxelCount = 0
+   self.currentIndex = 0
+   self.isDirty = false
+
+   -- Let us handle the collection of vertexBuffer
+   ffi.gc(self.vertexBuffer, nil)
+   self.vertexBuffer = nil
+
+   -- Release the instanceData ByteData for the VoxelBatch
+   self.instanceData:release()
+   self.instanceData = nil
+
+   -- Release the modelAttributes Mesh for the VoxelBatch
+   self.modelAttributes:release()
+   self.modelAttributes = nil
+
+   -- Release the model Mesh for the VoxelBatch
+   self.mesh:release()
+   self.mesh = nil
+
+   -- Release the reference to the texture used by the VoxelBatch
+   self.texture = nil
+
+   return true
+end
+
 return setmetatable(VoxelBatch, {
-   __call = function(_, ...) return VoxelBatch.new(...) end,
+   __call = function (_, ...) return VoxelBatch.new(...) end
 })
