@@ -16,6 +16,7 @@ function love.update()
 end
 
 local function draw()
+   love.graphics.clear()
    myVoxelBatch:draw()
 end
 
@@ -35,7 +36,7 @@ function love.keypressed(key)
       love.event.quit()
    end
 
-   if key == "a" then
+   if key == "a" and myVoxelBatch:getCount() > 0 then
       for i = 1, 16 do
          myVoxelBatch:setTransformation(i, i * 64, 300)
       end
